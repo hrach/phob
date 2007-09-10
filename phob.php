@@ -12,17 +12,6 @@
 */
 ob_start();
 
-/*
-	if you use mod_reqrite you must define this absolute url
-*/
-$config['absolute_url'] = '';
-
-/*
-	if you use complicatly integrations of Phob (with blogs etc.), define this
-	varibles 'absolute_url' and 'absolute_server_path' must goes to same directory
-	use something as this: $_SERVER['DOCUMENT_ROOT'].'you/path'
-*/
-$config['absolute_server_path'] = ''; 
 
 /*
 	string for non-mod_rewrite mod,
@@ -43,14 +32,12 @@ $config['main_skin'] = 'basic';						// the name of skin
 $config['main_show_dirup'] = true;					// do you want to show item ".." - "dir up"?
 $config['main_dba_handler'] = 'inifile';			// handler for working with comments
 
-$config['dir_data'] = 'photos';						// relative path to directory with photos
-$config['dir_thumb'] = 'thumbs';					// relative path to directory with thumbnails (set premisions on 0777)
-$config['dir_skins'] = 'skins';						// relative path to directory with skins
+$config['dir_data'] = './photos';					// relative path (from here) to directory with photos 
+$config['dir_thumb'] = './thumbs';					// relative path (from here) to directory with thumbnails (set premisions on 0777)
+$config['dir_skins'] = './skins';					// relative path (from here) to directory with skins
 
 $config['admin_nick'] = 'admin';					// nick and password to mini-administration
 $config['admin_pass'] = '1234';
-
-$config['path_char'] = ' » ';						// separator of folders
 
 $config['allowed_ext'] = array('jpeg', 'jpg');
 
