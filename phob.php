@@ -9,7 +9,7 @@
 ob_start();
 
 $config['main_script_name'] = basename(__FILE__);				// for example phob.php
-$config['mod_rewrite_on'] = false;								// true = mod_rewrite on;
+$config['mod_rewrite_on'] = true;								// true = mod_rewrite on;
 
 // BASIC SETTINGS 
 

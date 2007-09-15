@@ -73,8 +73,11 @@ class phoB {
 			$config['url_main'] .= "/" . $config['main_script_name'];
 		// for browsing
 		$config['url_browse'] = $config['url_main'];
-		if(!$config['mod_rewrite_on'])
+		if(!$config['mod_rewrite_on']) {
 			$config['url_browse'] .= "?url=";
+		} else {
+			$config['url_browse'] .= "/";
+		}
 
 		$config['server_path'] = dirname(__FILE__); 
 
