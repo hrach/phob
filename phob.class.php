@@ -1,12 +1,12 @@
 <?php
 /**
- * PhoB - Photo Browser - written in PHP5
+ * phoB:: - Photo Browser - written in PHP5
  * @author Jan Skrasek <hrach.cz(at)gmail(dot)com>
- * @version 0.2.0
+ * @version 0.2.5
  * @copyright Lesser GNU Public License (LGPL)
  */
 
-class photoBrowser {
+class phoB {
 	public $lang;
 
 	protected $config = null;
@@ -21,24 +21,11 @@ class photoBrowser {
 	protected $header_url = '';
 	protected $thumbnail = '';
 
-	static function noQuery($s) {
-		return substr($s, 0, strpos($s, '?')-1);
-	}
-
-	static function getUrl($show_port = false) {
-
-		if($_SERVER['HTTPS']) {
-			$my_url = 'https://';
-		} else {
-			$my_url = 'http://';
-		}
-		$my_url .= $_SERVER['HTTP_HOST'];
-		if($show_port) {
-			$my_url .= ':' . $_SERVER['SERVER_PORT'];
-		}
-		$my_url .= $_SERVER['SCRIPT_NAME'];
-
-		return dirname($my_url).'/';
+	static function getUrl() {
+		if($_SERVER['HTTPS']) { $url = 'https://'; } else { $url = 'http://'; }
+		$url .= $_SERVER['HTTP_HOST'];
+		$url .= $_SERVER['SCRIPT_NAME'];
+		return dirname($url);
 	}
 
 	static function delSlash($string)	{
@@ -54,20 +41,20 @@ class photoBrowser {
 		return true;
 	}
 
-	protected function isImg($string) {
+	function isImg($string) {
 		$ext = strtolower(substr($string, strrpos($string, '.')+1));
 		if (in_array($ext, $this->config['allowed_ext'])) return true;
 		return false;
 	}
 
-	protected function getimg($i, $direction) {
+	function getImg($i, $direction) {
 		$data = $this->data['list'];
 		if(($i+$direction) < 1 || ($i+$direction) > (count($data))) return null;
 		if($data[$i+$direction]['dir']) return $this->getimg($i+$direction, $direction);
 		return $data[$i+$direction]['name'];
 	}
 
-	protected function __($string) {
+	function __($string) {
 		$translate = $this->lang[$string];
 		if($translate != '') return $translate;
 		return $string;
@@ -77,17 +64,22 @@ class photoBrowser {
 		include_once('btemplate.class.php');
 
 		if (!is_array($config)) Die(__('Špatná konfigurace!'));
-		
-		$config['absolute_url'] = photoBrowser::getUrl();
-		if(photoBrowser::noQuery(basename($GLOBALS['PHP_SELF'])) != 'index.php')
-			$config['absolute_url_base'] .= photoBrowser::noQuery(basename($GLOBALS['PHP_SELF']));
-		$config['absolute_server_path'] = dirname(__FILE__); 
 
-		if(strlen($this->config['parametr_data'])<1) $this->config['parametr_data'] = 'list';
-		if($this->config['absolute_url'] !== '') $this->config['absolute_url'] = photoBrowser::delSlash($this->config['absolute_url']).'/';
-		
+		// for css
+		$config['url_base'] = phoB::getUrl();
+		// for top
+		$config['url_main'] = $config['url_base'];
+		if($config['main_script_name'] != 'index.php' && !$config['mod_rewrite_on']) 
+			$config['url_main'] .= "/" . $config['main_script_name'];
+		// for browsing
+		$config['url_browse'] = $config['url_main'];
+		if(!$config['mod_rewrite_on'])
+			$config['url_browse'] .= "?url=";
+
+		$config['server_path'] = dirname(__FILE__); 
+
 		$this->config = $config;
-		$this->parametr = $this->config['parametr_data'];
+		$this->parametr = $_GET['url'];
 		$this->parseParametr();
 	}
 
@@ -122,7 +114,7 @@ class photoBrowser {
 			$this->action = 'admin';
 			$this->path = '';
 			$this->name = '';
-			$this->sub_get = photoBrowser::delSlash($reg[2]);
+			$this->sub_get = phoB::delSlash($reg[2]);
 		}else{
 			$this->action = 'list';
 			$this->path = '';
@@ -165,11 +157,11 @@ class photoBrowser {
 		foreach($files as $entry)
 		{
 			if($entry['name'] == '.' || $entry['name'] == '..') continue;
-			if(photoBrowser::isDir($entry['name'])) {
+			if(phoB::isDir($entry['name'])) {
 				$this->path = $entry['path'];
 				$ret = array_merge($ret, $this->dir_list($entry['path']));
 			} else {
-				$ret[] = array('name' => $entry['name'], 'path' => photoBrowser::delSlash($path.'/'));
+				$ret[] = array('name' => $entry['name'], 'path' => phoB::delSlash($path.'/'));
 			}
 		}
 		return $ret;
@@ -182,35 +174,35 @@ class photoBrowser {
 			session_start();
 			$_SESSION['nick']	= $_POST['nick'];
 			$_SESSION['pass']	= md5($_POST['pass']);
-			$this->header_url = 'Location: '.$this->config['absolute_url'].$this->config['parametr'].'admin';
+			$this->header_url = 'Location: '.$this->config['url_browse'].'admin';
 
 		}elseif($this->sub_get == 'logout'){
 
 			$_SESSION = array();
 			session_destroy();
-			$this->header_url = 'Location: '.$this->config['absolute_url'].$this->config['parametr'].'list';
+			$this->header_url = 'Location: '.$this->config['url_browse'].'list';
 
 		}elseif(ereg("^save/(.*)/(.*)$", $this->sub_get, $reg)){
 
 			if(!function_exists('dba_open')) {
-				$error = $this->__('Hosting nepodporuje rozšíření DBA, návrat <a href="'.$this->config['absolute_url'].$this->config['parametr'].'preview/'.$reg[1].'/'.$reg[2].'">zpět</a>.');
+				$error = $this->__('Hosting nepodporuje rozšíření DBA, návrat <a href="'.$this->config['url_browse'].'preview/'.$reg[1].'/'.$reg[2].'">zpět</a>.');
 				die($error);
 			}
-			$db_id = dba_open(photoBrowser::delSlash($this->config['dir_data'].'/'.$reg[1]).'/'.'info.db', "c", $this->config['main_dba_handler']);
+			$db_id = dba_open(phoB::delSlash($this->config['dir_data'].'/'.$reg[1]).'/'.'info.db', "c", $this->config['main_dba_handler']);
 			dba_replace($reg[2], $_POST['label'], $db_id);
 			dba_close($db_id);
-			$this->header_url = 'Location: '.$this->config['absolute_url'].$this->config['parametr'].'preview/'.$reg[1].'/'.$reg[2];
+			$this->header_url = 'Location: '.$this->config['url_browse'].'preview/'.$reg[1].'/'.$reg[2];
 
 		}elseif(ereg("^save/(.*)$", $this->sub_get, $reg)){
 
 			if(!function_exists('dba_open')) {
-				$error = $this->__('Hosting nepodporuje rozšíření DBA, návrat <a href="'.$this->config['absolute_url'].$this->config['parametr'].'preview/'.$reg[1].'/'.$reg[2].'">zpět</a>.');
+				$error = $this->__('Hosting nepodporuje rozšíření DBA, návrat <a href="'.$this->config['url_browse'].'preview/'.$reg[1].'/'.$reg[2].'">zpět</a>.');
 				die($error);
 			}
 			$db_id = dba_open($this->config['dir_data'].'/info.db', "c", $this->config['main_dba_handler']);
 			dba_replace($reg[1], $_POST['label'], $db_id);
 			dba_close($db_id);
-			$this->header_url = 'Location: '.$this->config['absolute_url'].$this->config['parametr'].'preview/'.$reg[1];
+			$this->header_url = 'Location: '.$this->config['url_browse'].'preview/'.$reg[1];
 
 		}
 	}
@@ -223,7 +215,7 @@ class photoBrowser {
 
 		if(!$thumb_exist) {
 
-			$img_path = photoBrowser::delSlash($this->config['dir_data'].'/'.$this->path).'/'.$this->name;
+			$img_path = phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/'.$this->name;
 			$thumbnail = exif_thumbnail($img_path);
 
 			if($thumbnail == false) {
@@ -279,31 +271,29 @@ class photoBrowser {
 
 		foreach($dirs as $dir)
 		{
-			$dir_now = photoBrowser::delSlash($dir_now.'/'.$dir);
+			$dir_now = phoB::delSlash($dir_now.'/'.$dir);
 			$folders[] = array('name' => $dir, 'path' => $dir_now);
 		}
 
 		$this->data['folders'] = $folders;
 
-		if(($files = @scandir($this->config['absolute_server_path'].$this->config['dir_data'].'/'.$path)) == false)
+		if(($files = @scandir($this->config['server_path'].'/'.$this->config['dir_data'].'/'.$path)) == false)
 			$this->scan_error = true;
 		if(!is_array($files)) $files = array();
 
 		$i = 0;
 		foreach($files as $entry)
 		{
-			if(!photoBrowser::isDir($entry)) continue;
+			if(!phoB::isDir($entry)) continue;
 			if($entry == '.' || ($path == '' && $entry == '..') || (!$this->config['main_show_dirup'] && $entry == '..')) continue;
 
 			$i++;
 			$data[$i]['name']	= $entry;
-			$data[$i]['path']	= photoBrowser::delSlash($path.'/'.$entry);
+			$data[$i]['path']	= phoB::delSlash($path.'/'.$entry);
 			$data[$i]['dir']		= true;
 			$data[$i]['show_name']	= $entry;
 
-			if($data[$i]['name']=='..')
-			{
-
+			if($data[$i]['name']=='..') {
 				$new_path = null;
 
 				$adr = split('/', $data[$i]['path']);
@@ -312,23 +302,20 @@ class photoBrowser {
 					$new_path .= '/'. $adr[$j];
 				}
 
-				$data[$i]['path'] = photoBrowser::delSlash($new_path);
+				$data[$i]['path'] = phoB::delSlash($new_path);
 				$data[$i]['show_name'] = $this->__('Nahoru');
-			}
-			else
-			{
+			} else {
 				$data[$i]['show_name'] = $data[$i]['name'];
 			}
 		}
 
-		foreach($files as $entry)
-		{
-			if(photoBrowser::isDir($entry) || !photoBrowser::isImg($entry)) continue;
+		foreach($files as $entry) {
+			if(phoB::isDir($entry) || !phoB::isImg($entry)) continue;
 
 			$i++;
 			if($this->name == $entry) $this->id = $i;
 			$data[$i]['name']	= $entry;
-			$data[$i]['path']	= photoBrowser::delSlash($path.'/'.$entry);
+			$data[$i]['path']	= phoB::delSlash($path.'/'.$entry);
 			$data[$i]['dir']	= false;
 			$data[$i]['show_name']	= $entry;
 		}
@@ -347,23 +334,22 @@ class photoBrowser {
 		}
 	}
 
-	protected function template()	{
-		
+	protected function template() {
 		$tpl = new bTemplate();
-		
-		$skin_url = $this->config['absolute_url'].$this->config['dir_skins'].'/'.$this->config['main_skin'];
-		$tpl->set('skin_url', $skin_url);
-		$tpl->set('site_name', $this->config['main_site_name']);
-		$tpl->set('site_url', $this->config['absolute_url_base']);
+		$skin_url = $this->config['url_base'].'/'.$this->config['dir_skins'].'/'.$this->config['main_skin'];
 
-		$path_item[] = array('link' => $this->config['absolute_url'].$this->config['parametr']."list/", 'name' => $this->__('kořenový adresář'));
-		$title_path = $this->__('kořenový adresář').$this->config['path_char'];
+		$tpl->set('skin_url', $skin_url);
+		$tpl->set('site_url', $this->config['url_main']);
+		$tpl->set('site_name', $this->config['main_site_name']);
+
+		$path_item[] = array('link' => $this->config['url_browse']."list/", 'name' => $this->__('kořenový adresář'));
+		$title_path = $this->__('kořenový adresář')." » ";
 
 		if($this->path != '' && $this->scan_error == false)
 			foreach ($this->data['folders'] as $dir_array)
 			{
-				$path_item[] = array('link' => $this->config['absolute_url'].$this->config['parametr']."list/".$dir_array['path'], 'name' => $dir_array['name']);
-				$title_path .= $dir_array['name'].$this->config['path_char'];
+				$path_item[] = array('link' => $this->config['url_browse']."list/".$dir_array['path'], 'name' => $dir_array['name']);
+				$title_path .= $dir_array['name']." » ";
 			}
 
 		switch($this->action) {
@@ -371,45 +357,52 @@ class photoBrowser {
 
 			$label = '';
 			$title_path .= $this->name;
-			$link = photoBrowser::delSlash($this->config['absolute_url'].$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
+			$link = phoB::delSlash($this->config['server_path'].'/'.$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
+			$url_link = phoB::delSlash($this->config['url_base'].'/'.$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
+
 			if(file_exists($link)) {
 
-				if(function_exists('dba_open') && file_exists(photoBrowser::delSlash($this->config['dir_data'].'/'.$this->path).'/info.db')) {
-					$db_id = dba_open(photoBrowser::delSlash($this->config['dir_data'].'/'.$this->path).'/info.db', "r", $this->config['main_dba_handler']);
+				if(function_exists('dba_open') && file_exists(phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/info.db')) {
+					$db_id = dba_open(phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/info.db', "r", $this->config['main_dba_handler']);
 					$label = dba_fetch($this->name, $db_id);
 					dba_close($db_id);
 					
-					if($label <> ''){
+					if(!empty($label)) {
 						$tpl->set('is_label', true, true);
-					}else{
+					} else {
 						$tpl->set('is_label', false, true);
 					}
+				} else {
+					$tpl->set('is_label', false, true);
 				}
 
 				if($this->is_login){
-					$tpl->set('set_label', "<form action=\"".photoBrowser::delSlash($this->config['absolute_url'].$this->config['parametr']."admin/save/".$this->path)."/".$this->name."\" method=\"post\">"
-											."<input type=\"text\" name=\"label\" id=\"label\" value=\"$label\"/><input type=\"submit\" value=\"".$this->__('Uložit popis')."\" /></form>");
+					$tpl->set('set_label', "
+					<form action=\"".phoB::delSlash($this->config['url_browse']."admin/save/".$this->path)."/".$this->name."\" method=\"post\">
+					<input type=\"text\" name=\"label\" id=\"label\" value=\"$label\"/>
+					<input type=\"submit\" value=\"".$this->__('Uložit popis')."\" />
+					</form>");
 				}
 
 				if($this->getimg($this->id, -1) != ''){
 					$tpl->set('left_thumb', true, true);
-					$tpl->set('lt_link', photoBrowser::delSlash($this->config['absolute_url'].$this->config['parametr']."preview/".$this->path)."/".$this->getimg($this->id, -1));
+					$tpl->set('lt_link', phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$this->getImg($this->id, -1));
 					$tpl->set('lt_name', $this->__('Předchozí fotka'));
-					$tpl->set('lt_img_link', photoBrowser::delSlash($this->config['absolute_url'].$this->config['parametr']."thumbnail/".$this->path)."/".$this->getimg($this->id, -1));
+					$tpl->set('lt_img_link', phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$this->getImg($this->id, -1));
 				}else{
 					$tpl->set('left_thumb', false, true);
 				}
 
 				if($this->getimg($this->id, 1) != ''){
 					$tpl->set('right_thumb', true, true);
-					$tpl->set('rt_link', photoBrowser::delSlash($this->config['absolute_url'].$this->config['parametr']."preview/".$this->path)."/".$this->getimg($this->id, 1));
+					$tpl->set('rt_link', phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$this->getImg($this->id, 1));
 					$tpl->set('rt_name', $this->__('Následující fotka'));
-					$tpl->set('rt_img_link', photoBrowser::delSlash($this->config['absolute_url'].$this->config['parametr']."thumbnail/".$this->path)."/".$this->getimg($this->id, 1));
+					$tpl->set('rt_img_link', phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$this->getImg($this->id, 1));
 				}else{
 					$tpl->set('right_thumb', false, true);
 				}
 
-				$tpl->set('link', $link);
+				$tpl->set('link', $url_link);
 				$tpl->set('label', $this->__('Komentář: ').$label);
 				$tpl->set('exists', true, true);
 			}else{
@@ -418,21 +411,17 @@ class photoBrowser {
 		break;
 		case 'list':
 			$items = array();
-			foreach($this->data['list'] as $record)
-			{
-				if($record['dir'])
-				{
-					$items[] = array( 'link' => $this->config['absolute_url'].$this->config['parametr']."list/".$record['path'],
+			foreach($this->data['list'] as $record) {
+				if($record['dir']) {
+					$items[] = array( 'link' => $this->config['url_browse']."list/".$record['path'],
 									  'type' => 'folder',
 									  'name' => $record['show_name'],
 									  'img_link' => $skin_url."/folder.png");
-				}
-				else
-				{
-					$items[] = array( 'link' => photoBrowser::delSlash($this->config['absolute_url'].$this->config['parametr']."preview/".$this->path)."/".$record['name'],
+				} else {
+					$items[] = array( 'link' => phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$record['name'],
 									  'type' => 'photo',
 									  'name' => '',
-									  'img_link' => photoBrowser::delSlash($this->config['absolute_url'].$this->config['parametr']."thumbnail/".$this->path)."/".$record['name']);
+									  'img_link' => phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$record['name']);
 				}
 			}
 			if($this->scan_error){
@@ -446,26 +435,26 @@ class photoBrowser {
 			$tpl->set('title_path', $this->__('Administrace'));
 			if($this->is_login) {
 				$tpl->set('admin', $this->__('Jste přihlášeni - je povolena editace popisků fotek.').'<br />'.
-											$this->__('Pokračujte na').' <a href="'.$this->config['absolute_url'].$this->config['parametr'].'list">'.
+											$this->__('Pokračujte na').' <a href="'.$this->config['url_browse'].'list">'.
 											$this->__('fotogalerii').'</a>.<br />'.
-											$this->__('Po dokončení editace popisků se').' <a href="'.$this->config['absolute_url'].$this->config['parametr'].'admin/logout">'.
+											$this->__('Po dokončení editace popisků se').' <a href="'.$this->config['url_browse'].'admin/logout">'.
 											$this->__('odhlašte').'</a>.');
 			}else{
-				$tpl->set('admin', "<form action=\"".$this->config['absolute_url'].$this->config['parametr']."admin/login\" method=\"post\">".
+				$tpl->set('admin', "<form action=\"".$this->config['url_browse']."admin/login\" method=\"post\">".
 											"<input type=\"text\" name=\"nick\" /><br />".
 											"<input type=\"password\" name=\"pass\"><br /><input type=\"submit\" value=\"".$this->__('Přihlásit')."\"/></form>");
 			}
 		break;
 		case 'random':
-			$tpl->set('url', photoBrowser::delSlash($this->config['absolute_url'].$this->config['dir_data'].'/'.$this->path).'/'.$this->name);
-			$tpl->set('preview_url', photoBrowser::delSlash($this->config['absolute_url'].$this->config['parametr']."preview/".$this->path)."/".$this->name);
-			$tpl->set('thumbnail_url', photoBrowser::delSlash($this->config['absolute_url'].$this->config['parametr']."thumbnail/".$this->path)."/".$this->name);
+			$tpl->set('url', phoB::delSlash($this->config['absolute_url'].$this->config['dir_data'].'/'.$this->path).'/'.$this->name);
+			$tpl->set('preview_url', phoB::delSlash($this->config['absolute_url'].$this->config['parametr']."preview/".$this->path)."/".$this->name);
+			$tpl->set('thumbnail_url', phoB::delSlash($this->config['absolute_url'].$this->config['parametr']."thumbnail/".$this->path)."/".$this->name);
 		break;
 		}
 		
 		$tpl->set('path_item', $path_item);
 		$tpl->set('title_path', $title_path);
-		return $tpl->fetch($this->config['absolute_server_path'].$this->config['dir_skins'].'/'.$this->config['main_skin'].'/'.$this->action.'.tpl.htm');
+		return $tpl->fetch($this->config['server_path'].'/'.$this->config['dir_skins'].'/'.$this->config['main_skin'].'/'.$this->action.'.tpl.htm');
 
 	}
 }

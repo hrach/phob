@@ -29,15 +29,17 @@ h1 {
 
 div#container {
 	display: block;
-	margin-left: auto;
-	margin-right: auto;
-	width: 930px;	
+	margin: 0 auto;
+	width: 930px;
+	text-align: center !important;
+	text-align: left;
 }
 
 div#main {
 	display: block;
 	position: absolute;
 	top: 90px;
+	text-align: center;
 	width: 935px;
 }
 
@@ -67,7 +69,8 @@ a.item {
 	float: left;
 	height: 141px;
 	margin: 5px;
-	width: 177px;		
+	text-align: center;
+	width: 177px;
 }
 
 a.item img {
