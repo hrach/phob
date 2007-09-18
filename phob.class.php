@@ -170,6 +170,20 @@ class phoB {
 		return $ret;
 	}
 
+	protected function saveComment( $reg ) {
+
+		$xmlFile = phoB::delSlash($this->config['dir_data'].'/'.$reg[1]).'/'.'comments.xml';
+
+		$xml = new DOMDocument();
+		$xml->load( $xmlFile );
+
+		$element = $xml->getElementById( $reg[2] );
+		$newElement = new DOMElement('comment', $_POST['label']);
+		//$newElement->setAttributeNode(new DOMAttr('id', $reg[2]));
+		$element->parentNode->replaceChild( $newElement, $element );
+
+	}
+
 	protected function admin() {
 
 		if($this->sub_get == 'login' && $_POST['nick'] == $this->config['admin_nick'] && $_POST['pass'] == $this->config['admin_pass']) {
@@ -187,13 +201,18 @@ class phoB {
 
 		}elseif(ereg("^save/(.*)/(.*)$", $this->sub_get, $reg)){
 
-			if(!function_exists('dba_open')) {
+				
+			/*if(!function_exists('dba_open')) {
 				$error = $this->__('Hosting nepodporuje rozšíření DBA, návrat <a href="'.$this->config['url_browse'].'preview/'.$reg[1].'/'.$reg[2].'">zpět</a>.');
 				die($error);
 			}
 			$db_id = dba_open(phoB::delSlash($this->config['dir_data'].'/'.$reg[1]).'/'.'info.db', "c", $this->config['main_dba_handler']);
 			dba_replace($reg[2], $_POST['label'], $db_id);
-			dba_close($db_id);
+			dba_close($db_id);*/
+
+			$this->saveComment($reg);
+			exit;
+
 			$this->header_url = 'Location: '.$this->config['url_browse'].'preview/'.$reg[1].'/'.$reg[2];
 
 		}elseif(ereg("^save/(.*)$", $this->sub_get, $reg)){
@@ -290,7 +309,10 @@ class phoB {
 		foreach($files as $entry)
 		{
 			if(!phoB::isDir($entry)) continue;
-			if($entry{0} == '.' ||($path == '' && $entry == '..') || (!$this->config['main_show_dirup'] && $entry == '..')) continue; // $entry == '.' ||
+			if( ($entry{0} == '.' && $entry != '..') ||
+				($path == '' && $entry == '..') ||
+				(!$this->config['main_show_dirup'] && $entry == '..')
+				) continue;
 
 			$i++;
 			$data[$i]['name']	= $entry;
@@ -298,12 +320,11 @@ class phoB {
 			$data[$i]['dir']		= true;
 			$data[$i]['show_name']	= $entry;
 
-			if($data[$i]['name']=='..') {
+			if($data[$i]['name'] == '..') {
 				$new_path = null;
 
 				$adr = split('/', $data[$i]['path']);
-				for($j=0; $j<count($adr)-2; $j++)
-				{
+				for($j=0; $j<count($adr)-2; $j++) {
 					$new_path .= '/'. $adr[$j];
 				}
 
@@ -365,20 +386,26 @@ class phoB {
 			$link = phoB::delSlash($this->config['server_path'].'/'.$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
 			$url_link = phoB::delSlash($this->config['url_base'].'/'.$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
 
-			if(file_exists($link)) {
+			if(file_exists($link)) { // exists photo?
 
-				if(function_exists('dba_open') && file_exists(phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/info.db')) {
-					$db_id = dba_open(phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/info.db', "r", $this->config['main_dba_handler']);
-					$label = dba_fetch($this->name, $db_id);
-					dba_close($db_id);
-					
-					if(!empty($label)) {
-						$tpl->set('is_label', true, true);
-					} else {
-						$tpl->set('is_label', false, true);
+				$xmlFile = phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/comments.xml';
+				$tpl->set('is_label', false, true);
+				if( file_exists($xmlFile) ) {
+					if( !class_exists('XMLReader') ) die( $this->__('PhoB potřebuje pro četení komentářů knihovnu XML Reader!') );
+
+					$xmlReader = new XMLReader();
+					$xmlReader->open($xmlFile);
+					while($xmlReader->read()) {
+
+						if($xmlReader->nodeType == XMLReader::ELEMENT && $xmlReader->name == 'comment') {
+							if($xmlReader->getAttribute('id') == $this->name) {
+								$xmlReader->read();
+								$label = $xmlReader->value;
+								$tpl->set('is_label', true, true);
+								break;
+							}
+						}
 					}
-				} else {
-					$tpl->set('is_label', false, true);
 				}
 
 				if($this->is_login){
