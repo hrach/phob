@@ -279,16 +279,18 @@ class phoB {
 		}
 
 		$this->data['folders'] = $folders;
-
-		if(($files = @scandir($this->config['server_path'].'/'.$this->config['dir_data'].'/'.$path)) == false)
+		$scan_dir = $this->config['server_path'].'/'.$this->config['dir_data'].'/'.$path;
+		if(!file_exists($scan_dir)) {
 			$this->scan_error = true;
-		if(!is_array($files)) $files = array();
+		}
 
+		$files = @scandir($scan_dir);
+		if(!is_array($files)) $files = array();
 		$i = 0;
 		foreach($files as $entry)
 		{
 			if(!phoB::isDir($entry)) continue;
-			if($entry == '.' || ($path == '' && $entry == '..') || (!$this->config['main_show_dirup'] && $entry == '..')) continue;
+			if($entry{0} == '.' ||($path == '' && $entry == '..') || (!$this->config['main_show_dirup'] && $entry == '..')) continue; // $entry == '.' ||
 
 			$i++;
 			$data[$i]['name']	= $entry;
