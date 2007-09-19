@@ -1,8 +1,8 @@
 <?php
 /**
- * phoB:: - Photo Browser - written in PHP5
+ * PhoB - Photo Browser - written in PHP5
  * @author Jan Skrasek <hrach.cz(at)gmail(dot)com>
- * @version 0.2.5
+ * @version 1.0 RC2
  * @copyright Lesser GNU Public License (LGPL)
  */
 
@@ -170,17 +170,43 @@ class phoB {
 		return $ret;
 	}
 
-	protected function saveComment( $reg ) {
+	protected function saveComment( $path, $id, $comment ) {
 
-		$xmlFile = phoB::delSlash($this->config['dir_data'].'/'.$reg[1]).'/'.'comments.xml';
+		$data = @file( $path );
+		$set = false;
+		for($i=0;$i<count($data);$i++) {
+			$rowId = substr( $data[$i], 0, strpos( $data[$i], '	'));
+			$rowCom = substr( $data[$i], strpos( $data[$i], '	'));
+			if($rowId == $id) {
+				if( empty($comment) ) continue;
+				$newFile[$i] = $rowId."	".$comment;
+				$set = true;
+				break;
+			} else {
+				$newFile[$i] = $rowId."	".$rowCom;
+			}
+		}
 
-		$xml = new DOMDocument();
-		$xml->load( $xmlFile );
+		if($set == false && !empty($comment) ) {
+			$newFile[] = $id."	".$comment;
+		}
 
-		$element = $xml->getElementById( $reg[2] );
-		$newElement = new DOMElement('comment', $_POST['label']);
-		//$newElement->setAttributeNode(new DOMAttr('id', $reg[2]));
-		$element->parentNode->replaceChild( $newElement, $element );
+		$newFile = implode("\n", $newFile);
+		file_put_contents( $path, $newFile );
+
+	}
+
+	protected function readComment( $path, $id ) {
+
+		$data = @file( $path );
+		for($i=0;$i<count($data);$i++) {
+			$rowId = substr( $data[$i], 0, strpos( $data[$i], '	'));
+			$rowCom = substr( $data[$i], strpos( $data[$i], '	'));
+			if($rowId == $id) {
+				return $rowCom;
+			}
+		}
+		return '';
 
 	}
 
@@ -201,29 +227,14 @@ class phoB {
 
 		}elseif(ereg("^save/(.*)/(.*)$", $this->sub_get, $reg)){
 
-				
-			/*if(!function_exists('dba_open')) {
-				$error = $this->__('Hosting nepodporuje rozšíření DBA, návrat <a href="'.$this->config['url_browse'].'preview/'.$reg[1].'/'.$reg[2].'">zpět</a>.');
-				die($error);
-			}
-			$db_id = dba_open(phoB::delSlash($this->config['dir_data'].'/'.$reg[1]).'/'.'info.db', "c", $this->config['main_dba_handler']);
-			dba_replace($reg[2], $_POST['label'], $db_id);
-			dba_close($db_id);*/
-
-			$this->saveComment($reg);
-			exit;
-
+			$path = $this->config['dir_data'].'/'.$reg[1].'/'.'comments.phob';
+			$this->saveComment( $path, $reg[2], $_POST['label'] );
 			$this->header_url = 'Location: '.$this->config['url_browse'].'preview/'.$reg[1].'/'.$reg[2];
 
 		}elseif(ereg("^save/(.*)$", $this->sub_get, $reg)){
 
-			if(!function_exists('dba_open')) {
-				$error = $this->__('Hosting nepodporuje rozšíření DBA, návrat <a href="'.$this->config['url_browse'].'preview/'.$reg[1].'/'.$reg[2].'">zpět</a>.');
-				die($error);
-			}
-			$db_id = dba_open($this->config['dir_data'].'/info.db', "c", $this->config['main_dba_handler']);
-			dba_replace($reg[1], $_POST['label'], $db_id);
-			dba_close($db_id);
+			$path = $this->config['dir_data'].'/comments.phob';
+			$this->saveComment( $path, $reg[1], $_POST['label'] );
 			$this->header_url = 'Location: '.$this->config['url_browse'].'preview/'.$reg[1];
 
 		}
@@ -386,26 +397,17 @@ class phoB {
 			$link = phoB::delSlash($this->config['server_path'].'/'.$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
 			$url_link = phoB::delSlash($this->config['url_base'].'/'.$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
 
-			if(file_exists($link)) { // exists photo?
+			if(file_exists($link)) {
 
-				$xmlFile = phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/comments.xml';
+				$path = phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/comments.phob';
 				$tpl->set('is_label', false, true);
-				if( file_exists($xmlFile) ) {
-					if( !class_exists('XMLReader') ) die( $this->__('PhoB potřebuje pro četení komentářů knihovnu XML Reader!') );
+				if( file_exists($path) ) {
 
-					$xmlReader = new XMLReader();
-					$xmlReader->open($xmlFile);
-					while($xmlReader->read()) {
-
-						if($xmlReader->nodeType == XMLReader::ELEMENT && $xmlReader->name == 'comment') {
-							if($xmlReader->getAttribute('id') == $this->name) {
-								$xmlReader->read();
-								$label = $xmlReader->value;
-								$tpl->set('is_label', true, true);
-								break;
-							}
-						}
+					$label = $this->readComment( $path, $this->name );
+					if(!empty($label)) {
+						$tpl->set('is_label', true, true);
 					}
+
 				}
 
 				if($this->is_login){

@@ -1,10 +1,4 @@
 <?php
-/**
- * PhoB - Photo Browser - written in PHP5
- * @author Jan Skrasek <hrach.cz(at)gmail(dot)com>
- * @version 0.2.5
- * @copyright Lesser GNU Public License (LGPL)
- */
 
 ob_start();
 
