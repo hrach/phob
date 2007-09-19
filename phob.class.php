@@ -61,8 +61,6 @@ class phoB {
 	}
 
 	function __construct($config)	{
-		include_once('btemplate.class.php');
-
 		if (!is_array($config)) Die(__('Špatná konfigurace!'));
 
 		// for css
@@ -84,6 +82,17 @@ class phoB {
 		$this->config = $config;
 		$this->parametr = $_GET['url'];
 		$this->parseParametr();
+	}
+
+	protected function setVar( $name, $value ) {
+		$this->vars[$name] = $value;
+	}
+
+	protected function fetchTemplate( ) {
+		extract($this->vars);
+		include($this->config['server_path'].'/'.$this->config['dir_skins'].'/'.$this->config['main_skin'].'/'.$this->action.'.php');
+		$return = ob_get_clean();
+		return $return;
 	}
 
 	protected function parseParametr(){
@@ -289,21 +298,20 @@ class phoB {
 	protected function login() {
 		if(session_id() == "") session_start();
 		if(!isset($_SESSION['nick'])) $_SESSION['nick'] = '';
-		if(!isset($_SESSION['nick'])) $_SESSION['pass'] = '';
+		if(!isset($_SESSION['pass'])) $_SESSION['pass'] = '';
 		if(($this->config['admin_nick'] == $_SESSION['nick']) && (md5($this->config['admin_pass']) == $_SESSION['pass']) )	return true;
 		return false;
 	}
 
-	public function scan()
-	{
+	public function scan() {
+
 		$data = array();
 		$path = $this->path;
 		$dirs = split('/', $path);
 
 		$dir_now = '';
 
-		foreach($dirs as $dir)
-		{
+		foreach($dirs as $dir) {
 			$dir_now = phoB::delSlash($dir_now.'/'.$dir);
 			$folders[] = array('name' => $dir, 'path' => $dir_now);
 		}
@@ -372,12 +380,12 @@ class phoB {
 	}
 
 	protected function template() {
-		$tpl = new bTemplate();
+
 		$skin_url = $this->config['url_base'].'/'.$this->config['dir_skins'].'/'.$this->config['main_skin'];
 
-		$tpl->set('skin_url', $skin_url);
-		$tpl->set('site_url', $this->config['url_main']);
-		$tpl->set('site_name', $this->config['main_site_name']);
+		$this->setVar('skin_url', $skin_url);
+		$this->setVar('site_url', $this->config['url_main']);
+		$this->setVar('site_name', $this->config['main_site_name']);
 
 		$path_item[] = array('link' => $this->config['url_browse']."list/", 'name' => $this->__('kořenový adresář'));
 		$title_path = $this->__('kořenový adresář')." » ";
@@ -400,18 +408,14 @@ class phoB {
 			if(file_exists($link)) {
 
 				$path = phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/comments.phob';
-				$tpl->set('is_label', false, true);
 				if( file_exists($path) ) {
-
 					$label = $this->readComment( $path, $this->name );
-					if(!empty($label)) {
-						$tpl->set('is_label', true, true);
-					}
-
+					$this->setVar('label', $this->__('Komentář: ').$label);
 				}
+				$this->setVar('setLabel', !empty($label));
 
 				if($this->is_login){
-					$tpl->set('set_label', "
+					$this->setVar('set_label', "
 					<form action=\"".phoB::delSlash($this->config['url_browse']."admin/save/".$this->path)."/".$this->name."\" method=\"post\">
 					<input type=\"text\" name=\"label\" id=\"label\" value=\"$label\"/>
 					<input type=\"submit\" value=\"".$this->__('Uložit popis')."\" />
@@ -419,28 +423,27 @@ class phoB {
 				}
 
 				if($this->getimg($this->id, -1) != ''){
-					$tpl->set('left_thumb', true, true);
-					$tpl->set('lt_link', phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$this->getImg($this->id, -1));
-					$tpl->set('lt_name', $this->__('Předchozí fotka'));
-					$tpl->set('lt_img_link', phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$this->getImg($this->id, -1));
+					$this->setVar('left_thumb', true);
+					$this->setVar('lt_link', phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$this->getImg($this->id, -1));
+					$this->setVar('lt_name', $this->__('Předchozí fotka'));
+					$this->setVar('lt_img_link', phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$this->getImg($this->id, -1));
 				}else{
-					$tpl->set('left_thumb', false, true);
+					$this->setVar('left_thumb', false);
 				}
 
 				if($this->getimg($this->id, 1) != ''){
-					$tpl->set('right_thumb', true, true);
-					$tpl->set('rt_link', phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$this->getImg($this->id, 1));
-					$tpl->set('rt_name', $this->__('Následující fotka'));
-					$tpl->set('rt_img_link', phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$this->getImg($this->id, 1));
+					$this->setVar('right_thumb', true);
+					$this->setVar('rt_link', phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$this->getImg($this->id, 1));
+					$this->setVar('rt_name', $this->__('Následující fotka'));
+					$this->setVar('rt_img_link', phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$this->getImg($this->id, 1));
 				}else{
-					$tpl->set('right_thumb', false, true);
+					$this->setVar('right_thumb', false);
 				}
 
-				$tpl->set('link', $url_link);
-				$tpl->set('label', $this->__('Komentář: ').$label);
-				$tpl->set('exists', true, true);
+				$this->setVar('link', $url_link);
+				$this->setVar('exists', true);
 			}else{
-				$tpl->set('exists', false, true);
+				$this->setVar('exists', false);
 			}
 		break;
 		case 'list':
@@ -459,36 +462,37 @@ class phoB {
 				}
 			}
 			if($this->scan_error){
-				$tpl->set('exists', false, true);
+				$this->setVar('exists', false);
 			}else{
-				$tpl->set('exists', true, true);
+				$this->setVar('exists', true);
 			}
-			$tpl->set('items', $items);
+			$this->setVar('items', $items);
 		break;
 		case 'admin':
-			$tpl->set('title_path', $this->__('Administrace'));
+			$this->setVar('title_path', $this->__('Administrace'));
 			if($this->is_login) {
-				$tpl->set('admin', $this->__('Jste přihlášeni - je povolena editace popisků fotek.').'<br />'.
+				$this->setVar('admin', $this->__('Jste přihlášeni - je povolena editace popisků fotek.').'<br />'.
 											$this->__('Pokračujte na').' <a href="'.$this->config['url_browse'].'list">'.
 											$this->__('fotogalerii').'</a>.<br />'.
 											$this->__('Po dokončení editace popisků se').' <a href="'.$this->config['url_browse'].'admin/logout">'.
 											$this->__('odhlašte').'</a>.');
 			}else{
-				$tpl->set('admin', "<form action=\"".$this->config['url_browse']."admin/login\" method=\"post\">".
+				$this->setVar('admin', "<form action=\"".$this->config['url_browse']."admin/login\" method=\"post\">".
 											"<input type=\"text\" name=\"nick\" /><br />".
 											"<input type=\"password\" name=\"pass\"><br /><input type=\"submit\" value=\"".$this->__('Přihlásit')."\"/></form>");
 			}
 		break;
 		case 'random':
-			$tpl->set('url', phoB::delSlash($this->config['absolute_url'].$this->config['dir_data'].'/'.$this->path).'/'.$this->name);
-			$tpl->set('preview_url', phoB::delSlash($this->config['absolute_url'].$this->config['parametr']."preview/".$this->path)."/".$this->name);
-			$tpl->set('thumbnail_url', phoB::delSlash($this->config['absolute_url'].$this->config['parametr']."thumbnail/".$this->path)."/".$this->name);
+			$this->setVar('url', phoB::delSlash($this->config['absolute_url'].$this->config['dir_data'].'/'.$this->path).'/'.$this->name);
+			$this->setVar('preview_url', phoB::delSlash($this->config['absolute_url'].$this->config['parametr']."preview/".$this->path)."/".$this->name);
+			$this->setVar('thumbnail_url', phoB::delSlash($this->config['absolute_url'].$this->config['parametr']."thumbnail/".$this->path)."/".$this->name);
 		break;
 		}
-		
-		$tpl->set('path_item', $path_item);
-		$tpl->set('title_path', $title_path);
-		return $tpl->fetch($this->config['server_path'].'/'.$this->config['dir_skins'].'/'.$this->config['main_skin'].'/'.$this->action.'.tpl.htm');
+
+		$this->setVar('path_item', $path_item);
+		$this->setVar('title_path', $title_path);
+
+		return $this->fetchTemplate();
 
 	}
 }
