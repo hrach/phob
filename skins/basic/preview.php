@@ -20,7 +20,7 @@
 	</div>
 
 	<div id="main">
-
+	<?php if($exists) { ?>
 		<?php if($left_thumb) { ?>
 		<a class="thumb" href="<?php echo $lt_link ?>" style="left: 0;">
 			<img src="<?php echo $lt_img_link ?>" alt="náhled"/>
@@ -40,7 +40,9 @@
 		<?php if($setLabel) { ?>
 			<div class="img_label"><?php echo $label ?></div>
 		<?php } ?>
-
+	<?php } else { ?>
+		Hledaná fotka neexistuje!
+	<?php } ?>
 		<br style="clear: both;"/>
 	</div>
 
