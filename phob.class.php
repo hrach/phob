@@ -29,11 +29,7 @@ class phoB {
 	}
 
 	static function delSlash($string)	{
-		if($string == '') return $string;
-		$i = 0; $y = strlen($string);
-		if($string{0} == '/') $i = 1;
-		if($string{$y-1} == '/') $y = -1;
-		return substr($string, $i, $y);
+		return trim($string, '/');
 	}
 
 	static function isDir($string) {
@@ -402,7 +398,7 @@ class phoB {
 
 			$label = '';
 			$title_path .= $this->name;
-			$link = phoB::delSlash($this->config['server_path'].'/'.$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
+			$link = $this->config['server_path'].'/'.phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/'.$this->name;
 			$url_link = phoB::delSlash($this->config['url_base'].'/'.$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
 
 			if(file_exists($link)) {
