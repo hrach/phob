@@ -7,7 +7,7 @@ $config['main_script_name'] = basename(__FILE__);	// for example phob.php
 $config['mod_rewrite_on'] = true;					// true = mod_rewrite on;
 
 $config['main_site_name'] = 'Developer';			// site name, name of your photogalery
-$config['main_skin'] = 'basic';						// the name of skin
+$config['main_skin'] = 'blue';						// the name of skin
 $config['main_show_dirup'] = true;					// do you want to show item ".." - "dir up"?
 
 $config['dir_data'] = 'photos';						// relative path (from here) to directory with photos 
