@@ -1,6 +1,10 @@
-* {
-	margin: 0;
-	padding: 0;
+body {
+	background: #fff url("bg.png") repeat-x top;
+	text-align: center;
+}
+
+img {
+	border: 0;
 }
 
 a {
@@ -11,23 +15,15 @@ a {
 	text-decoration: none;
 }
 
-body {
-	background: #fff url("bg.png") repeat-x top;
-	text-align: center;
-}
-
-img {
-	border: 0;
-}
-
 h1 {
 	color: #3b6d9f;
 	font-family: Verdana, 'Geneva CE', lucida, sans-serif;
+	margin: 0;
 	position: absolute;
 	top: 8px;
 }
 
-div#container {
+#container {
 	display: block;
 	margin: 0 auto;
 	width: 930px;
@@ -35,7 +31,7 @@ div#container {
 	text-align: left;
 }
 
-div#main {
+#main {
 	display: block;
 	position: absolute;
 	top: 90px;
@@ -43,24 +39,21 @@ div#main {
 	width: 935px;
 }
 
-div.block_path {
+#dirNav {
 	display: block;
 	font-family: 'Trebuchet MS', 'Geneva CE', lucida, sans-serif;
 	font-size: 15px;
+	position: absolute;
+	top: 52px;
 }
 
-div.block_path a {
+#dirNav a {
 	color: #535802;
 	text-decoration: none;
 }
 
-div.block_path a:hover {
+#dirNav a:hover {
 	text-decoration: underline;
-}
-
-div.block_top {
-	position: absolute;
-	top: 52px;
 }
 
 a.item {
@@ -73,16 +66,23 @@ a.item {
 	width: 177px;
 }
 
-a.item img {
+a.photo img {
 	margin-top: 10px;
+	max-height: 120px;
+	max-width: 160px;
+	_height: 120px;
+	_width: 160px;
 }
 
-a.item span {
-	float: left;
+a.photo span {
+	display: none;
+}
+
+a.dir span {
+	background: url('folder.png') center no-repeat;
 	display: block;
+	height: 120px;
 	margin-top: 10px;
-	text-align: center;
-	width: 177px;
 }
 
 a.item:hover {
@@ -102,11 +102,10 @@ a.thumb {
 
 a.thumb img {
 	margin-top: 10px;
-}
-
-a.thumb:hover img {
-	margin-top: 8px;
-	border: 2px solid #3b6d9f;
+	max-height: 120px;
+	max-width: 160px;
+	_height: 120px;
+	_width: 160px;	
 }
 
 a img#main_img {

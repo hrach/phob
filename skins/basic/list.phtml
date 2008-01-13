@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+	<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="<?php echo $skinPath ?>/style.css" type="text/css" media="screen" />
+	<?php
+		$titlePath = "";
+		foreach($dirTree as $item) {
+			$titlePath .= $item['name'] . " » ";
+		}
+	?>
+	<title><?php echo $siteName ." :: ". $titlePath ?> :: by PhoB</title>
+</head>
+<body>
+
+<div id="container">
+	<a href="<?php echo $siteUrl ?>"><h1><?php echo $siteName ?></h1></a>
+
+	<div id="dirNav">
+		<?php foreach($dirTree as $item) { ?>
+			<a href="<?php echo $item['path'] ?>"><?php echo $item['name'] ?></a> »
+		<?php } ?>
+	</div>
+
+	<div id="main">
+	<?php
+		foreach($photos as $photo) {
+			if ($photo['type'] == 'dir') {
+	?>
+				<a href="<?php echo $photo['path'] ?>" class="item dir">
+					<span><?php echo $photo['name'] ?></span>
+				</a>
+	<?php
+			} else {
+	?>
+				<a href="<?php echo $photo['path'] ?>" class="item photo">
+					<img src="<?php echo $photo['thumb'] ?>" />
+					<span><?php echo $photo['name'] ?></span>
+				</a>
+	<?php			
+			}
+		}
+	?>
+	<br style="clear: left" /><br />
+	</div>
+</div>
+
+</body>
+</html>

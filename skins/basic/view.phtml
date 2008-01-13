@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+	<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="<?php echo $skinPath ?>/style.css" type="text/css" media="screen" />
+	<?php
+		$titlePath = "";
+		foreach($dirTree as $item) {
+			$titlePath .= $item['name'] . " » ";
+		}
+	?>
+	<title><?php echo $siteName ." :: ". $titlePath ?> :: by PhoB</title>
+</head>
+<body>
+
+<div id="container">
+	<a href="<?php echo $siteUrl ?>"><h1><?php echo $siteName ?></h1></a>
+
+	<div id="dirNav">
+		<?php foreach($dirTree as $item) { ?>
+			<a href="<?php echo $item['path'] ?>"><?php echo $item['name'] ?></a> »
+		<?php } ?>
+	</div>
+
+	<div id="main">
+	<?php if ($exists) { ?>
+		<?php if($prev !== false) { ?>
+		<a class="thumb" href="<?php echo $prev['path'] ?>" style="left: 0;">
+			<img src="<?php echo $prev['thumb'] ?>" alt="náhled"/>
+		</a>
+		<?php } ?>
+
+		<?php if($next !== false) { ?>
+		<a class="thumb" href="<?php echo $next['path'] ?>" style="right: 0;">
+			<img src="<?php echo $next['thumb'] ?>" alt="náhled"/>
+		</a>
+		<?php } ?>
+
+		<a href="<?php echo $siteUrl . '/' . $photoUrl ?>">
+			<img id="main_img" src="<?php echo $siteUrl . '/' . $photoUrl ?>"/>
+		</a>
+
+		<?php if($setLabel) { ?>
+			<div class="img_label"><?php echo $label ?></div>
+		<?php } ?>
+	<?php } else { ?>
+		Tato fotografie neexistuje!
+	<?php } ?>
+		<br style="clear: both;"/>
+	</div>
+
+	<br style="clear: left" /><br />
+	</div>
+</div>
+</body>
+</html>

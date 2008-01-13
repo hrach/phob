@@ -1,275 +1,246 @@
 <?php
-/**
- * PhoB - Photo Browser - written in PHP5
- * @author Jan Skrasek <hrach.cz(at)gmail(dot)com>
- * @version 1.0 RC2
- * @copyright Lesser GNU Public License (LGPL)
- */
 
-class phoB {
-	public $lang;
+class Phob
+{
 
-	protected $config = null;
-	protected $data = null;
-	protected $action = '';
-	protected $name = '';
-	protected $id = '';
-	protected $path = '';
-	protected $sub_get = '';
-	protected $is_login = false;
-	protected $scan_error = false;
-	protected $header_url = '';
-	protected $thumbnail = '';
+	/** @var array $lang	*/
+	public $lang = array();
 
-	static function getUrl() {
-		if($_SERVER['HTTPS']) { $url = 'https://'; } else { $url = 'http://'; }
-		$url .= $_SERVER['HTTP_HOST'];
-		$url .= $_SERVER['SCRIPT_NAME'];
-		return dirname($url);
-	}
+	/** @var string $action */
+	private $action;
+	/** @var array $path */
+	private $path = array();
+	/** @var string $name */
+	private $name;
+	/** @var string $photoDir */
+	private $photoDir;
+	/** @var string $skinsDir */
+	private $skinsDir;
+	/** @var array $config */
+	private $config = array();
 
-	static function delSlash($string)	{
-		return trim($string, '/');
-	}
 
-	static function isDir($string) {
-		if (eregi('.+\..+', $string)) return false;
-		return true;
-	}
-
-	function isImg($string) {
-		$ext = strtolower(substr($string, strrpos($string, '.')+1));
-		if (in_array($ext, $this->config['allowed_ext'])) return true;
-		return false;
-	}
-
-	function getImg($i, $direction) {
-		$data = $this->data['list'];
-		if(($i+$direction) < 1 || ($i+$direction) > (count($data))) return null;
-		if($data[$i+$direction]['dir']) return $this->getimg($i+$direction, $direction);
-		return $data[$i+$direction]['name'];
-	}
-
-	function __($string) {
-		$translate = $this->lang[$string];
-		if($translate != '') return $translate;
-		return $string;
-	}
-
-	function __construct($config)	{
-		if (!is_array($config)) Die(__('Špatná konfigurace!'));
-
-		// for css
-		$config['url_base'] = phoB::getUrl();
-		// for top
-		$config['url_main'] = $config['url_base'];
-		if($config['main_script_name'] != 'index.php' && !$config['mod_rewrite_on']) 
-			$config['url_main'] .= "/" . $config['main_script_name'];
-		// for browsing
-		$config['url_browse'] = $config['url_main'];
-		if(!$config['mod_rewrite_on']) {
-			$config['url_browse'] .= "?url=";
-		} else {
-			$config['url_browse'] .= "/";
+	/** @var array $dirItems */
+	private $dirItems = array();
+	/** @var array $vars */
+	private $vars = array();
+	/** @var  integer $photoNum */
+	private $photoNum = -1;
+	
+	
+	public function __construct($config)
+	{
+		if (!is_array($config)) {
+			die($this->__('Špatná konfigurace.'));
 		}
+		
+		$this->photoDir = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $config['path']['photos'];
+		$this->skinsDir = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $config['path']['skins'] . '/' . $config['main']['skin'];
+		$this->route();
 
-		$config['server_path'] = dirname(__FILE__); 
-
+		$this->set('skinPath', dirname($_SERVER['PHP_SELF']) . '/' . $config['path']['skins'] . '/' . $config['main']['skin']);
+		$this->set('siteName', $config['main']['site_name']);
+		$this->set('siteUrl', dirname($_SERVER['PHP_SELF']));
 		$this->config = $config;
-		$this->parametr = $_GET['url'];
-		$this->parseParametr();
 	}
-
-	protected function setVar( $name, $value ) {
-		$this->vars[$name] = $value;
-	}
-
-	protected function fetchTemplate( ) {
-		extract($this->vars);
-		include($this->config['server_path'].'/'.$this->config['dir_skins'].'/'.$this->config['main_skin'].'/'.$this->action.'.php');
-		$return = ob_get_clean();
-		return $return;
-	}
-
-	protected function parseParametr(){
-
-		if(ereg("^(preview|thumbnail)/(.*)/(.*)$", $this->parametr, $reg)){
-			$this->action = $reg[1];
-			$this->path = $reg[2];
-			$this->name = $reg[3];
-			$this->sub_get = '';
-		}elseif(ereg("^(preview|thumbnail)/(.*)$", $this->parametr, $reg)){
-			$this->action = $reg[1];
-			$this->path = '';
-			$this->name = $reg[2];
-			$this->sub_get = '';
-		}elseif(ereg("^random$", $this->parametr, $reg)){
-			$this->action = 'random';
-			$this->path = '';
-			$this->name = '';
-			$this->sub_get = '';
-		}elseif(ereg("^random/(.*)$", $this->parametr, $reg)){
-			$this->action = 'random';
-			$this->path = '';
-			$this->name = '';
-			$this->sub_get = $reg[1];
-		}elseif(ereg("^list/(.*)$", $this->parametr, $reg)){
-			$this->action = 'list';
-			$this->path = $reg[1];
-			$this->name = '';
-			$this->sub_get = '';
-		}elseif(ereg("^admin(/?)(.+)?$", $this->parametr, $reg)){
-			$this->action = 'admin';
-			$this->path = '';
-			$this->name = '';
-			$this->sub_get = phoB::delSlash($reg[2]);
-		}else{
-			$this->action = 'list';
-			$this->path = '';
-			$this->name = '';
-			$this->sub_get = '';
-		}
-	}
-
-	public function	exe() {
-		$this->is_login = $this->login();
-		switch($this->action)
-		{
+	
+	public function render()
+	{
+		switch ($this->action) {
+			case 'view':
+				$this->scan();
+				return $this->view();
+				break;
+			case 'list':
+				$this->scan();
+				return $this->listDir();
+				break;
+			case 'preview':
+				$this->preview();
+				break;
+			case 'admin':
+				return $this->admin();
+				break;
 			case 'random':
 				$random = $this->get_random($this->dir_list($this->sub_get));
 				$this->path = $random['path'];
 				$this->name = $random['name'];
 				break;
-			case 'preview':
-			case 'list':
-				$this->data['list'] = $this->scan();
-				break;
-			case 'thumbnail':
-				$this->thumbnail();
-				break;
-			case 'admin':
-				$this->admin();
-				break;
 		}
 	}
-
-	protected function get_random($a) {
-		return $a[array_rand($a)];
-	}
-
-	protected function dir_list($path) {
-		$this->path = $path;
-		$ret = array();
-		$files = $this->scan();
-
-		foreach($files as $entry)
-		{
-			if($entry['name'] == '.' || $entry['name'] == '..') continue;
-			if(phoB::isDir($entry['name'])) {
-				$this->path = $entry['path'];
-				$ret = array_merge($ret, $this->dir_list($entry['path']));
+	
+	private function getBase()
+	{
+		if ($this->config['mod_rewrite']) {
+			return dirname($_SERVER['PHP_SELF']) . '/';
+		} else {
+			if (basename($_SERVER['PHP_SELF']) === 'index.php') {
+				return dirname($_SERVER['PHP_SELF']) . '/?url=';
 			} else {
-				$ret[] = array('name' => $entry['name'], 'path' => phoB::delSlash($path.'/'));
+				return $_SERVER['PHP_SELF'] . '?url=';
 			}
 		}
-		return $ret;
 	}
 
-	protected function saveComment( $path, $id, $comment ) {
+	private function __($key)
+	{
+		if (isset($this->lang[$key])) {
+			return $this->lang[$key];
+		} else {
+			return $key;
+		}
+	}
+	
+	private function route()
+	{
+		$url = trim($_GET['url'], '/');
+		
+		if (empty($url)) {
+			$url = 'list';
+		}
 
-		$data = @file( $path );
-		$set = false;
-		for($i=0;$i<count($data);$i++) {
-			$rowId = substr( $data[$i], 0, strpos( $data[$i], '	'));
-			$rowCom = substr( $data[$i], strpos( $data[$i], '	'));
-			if($rowId == $id) {
-				if( empty($comment) ) continue;
-				$newFile[$i] = $rowId."	".$comment;
-				$set = true;
-				break;
-			} else {
-				$newFile[$i] = $rowId."	".$rowCom;
+		$url = explode('/', $url);
+		
+		$allowed = array('view', 'preview', 'list', 'random', 'admin');
+		
+		if (in_array($url[0], $allowed)) {
+			$this->action = array_shift($url);
+		}
+
+		$withName = array('view', 'preview');
+		if (in_array($this->action, $withName)) {
+			$this->name = array_pop($url);
+		}
+
+		$this->path = $url;
+	}
+	
+	private function scan()
+	{
+		$path = implode('/', $this->path);
+
+		$folder = new DirectoryIterator($this->photoDir . '/' . $path);
+		$photos = array();
+		$dirs = array();
+		$i = 0;
+		
+		
+		foreach ($folder as $file) {
+			if ($file->isDir()) {
+				if ($file->getFileName() === '.'
+				|| ($file->getFileName() === '..' && !$this->config['main']['show_dirup'])
+				|| ($file->getFileName() === '..' && empty($path))
+				) {
+					continue;
+				}
+				
+				$dirs[] = array(
+					'type' => 'dir',
+					'name' => ($file->getFileName() !== '..') ? $file->getFileName() : $this->__('Nahoru [..]'),
+					'path' => $this->getBase() . trim('list/' . $path, '/') . '/' . $file->getFileName()
+				);
+			} elseif(preg_match("/.jpe?g$/", strtolower($file->getFileName()))) {
+				++$i;
+				if ($this->name === $file->getFileName()) {
+					$this->photoNum = $i;
+				}
+
+				$photos[] = array(
+					'type' => 'photo',
+					'name' => $file->getFileName(),
+					'path' => $this->getBase() . trim('view/' . $path, '/') . '/' . $file->getFileName(),
+					'thumb' => $this->getBase() . trim('preview/' . $path, '/') . '/' . $file->getFileName(),
+				);
 			}
 		}
+		
+		$this->photosSum = $i;
+		$this->dirItems = array_merge($dirs, $photos);
+	}
+	
+	private function listDir()
+	{
+		$this->setTree();
+		$this->set('photos', $this->dirItems);
 
-		if($set == false && !empty($comment) ) {
-			$newFile[] = $id."	".$comment;
+		return $this->renderTemplate('list');
+	}
+	
+	private function view()
+	{
+		$this->setTree();
+		$path = $this->config['path']['photos'] . '/' . implode('/', $this->path) . '/' . $this->name;
+		
+		if (file_exists(dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $path)) {
+			$this->set('exists', true);
+			$this->set('photoUrl', $path);
+			
+			$this->set('next', $this->getPhoto($this->photoNum, +1));
+			$this->set('prev', $this->getPhoto($this->photoNum, -1));
+		} else {
+			$this->set('exists', false);
 		}
 
-		$newFile = implode("\n", $newFile);
-		file_put_contents( $path, $newFile );
-
+		return $this->renderTemplate('view');
 	}
-
-	protected function readComment( $path, $id ) {
-
-		$data = @file( $path );
-		for($i=0;$i<count($data);$i++) {
-			$rowId = substr( $data[$i], 0, strpos( $data[$i], '	'));
-			$rowCom = substr( $data[$i], strpos( $data[$i], '	'));
-			if($rowId == $id) {
-				return $rowCom;
-			}
+	
+	private function getPhoto($i, $direction)
+	{
+		if (($i + $direction) < 1 || ($i + $direction) > $this->photosSum) {
+			return false;
 		}
-		return '';
 
-	}
-
-	protected function admin() {
-
-		if($this->sub_get == 'login' && $_POST['nick'] == $this->config['admin_nick'] && $_POST['pass'] == $this->config['admin_pass']) {
-
-			session_start();
-			$_SESSION['nick']	= $_POST['nick'];
-			$_SESSION['pass']	= md5($_POST['pass']);
-			$this->header_url = 'Location: '.$this->config['url_browse'].'admin';
-
-		}elseif($this->sub_get == 'logout'){
-
-			$_SESSION = array();
-			session_destroy();
-			$this->header_url = 'Location: '.$this->config['url_browse'].'list';
-
-		}elseif(ereg("^save/(.*)/(.*)$", $this->sub_get, $reg)){
-
-			$path = $this->config['dir_data'].'/'.$reg[1].'/'.'comments.phob';
-			$this->saveComment( $path, $reg[2], $_POST['label'] );
-			$this->header_url = 'Location: '.$this->config['url_browse'].'preview/'.$reg[1].'/'.$reg[2];
-
-		}elseif(ereg("^save/(.*)$", $this->sub_get, $reg)){
-
-			$path = $this->config['dir_data'].'/comments.phob';
-			$this->saveComment( $path, $reg[1], $_POST['label'] );
-			$this->header_url = 'Location: '.$this->config['url_browse'].'preview/'.$reg[1];
-
+		if ($this->dirItems[$i + $direction]['type'] === 'dir') {
+			return $this->getPhoto($i + $direction, $direction);
 		}
+		
+		return $this->dirItems[$i + $direction];
 	}
 
-	protected function thumbnail() {
-		$thumb_path = $this->config['dir_thumb'].'/'.$this->path.'_'.$this->name;
-		$thumb_exist = file_exists($thumb_path);
+	
+	private function setTree()
+	{
+		$dirTree = array(
+			array(
+				'name' => $this->__('Kořenový adresář'),
+				'path' => $this->getBase() . 'list/',
+			)
+		);
 
+		$cache = 'list/';
+		foreach ($this->path as $dir) {
+			$cache .= $dir . '/';
+			$dirTree[] = array(
+				'name' => $dir,
+				'path' => $this->getBase() . $cache,
+			);
+		}
+
+		$this->set('dirTree', $dirTree);
+	}
+	
+	private function preview()
+	{
 		header('Content-type: image/jpeg');
 
-		if(!$thumb_exist) {
+		$thumb_path = $this->config['path']['thumbs'] . '/' . md5(implode('/', $this->path) . '_' . $this->name) . '.jpeg';
+		if (!file_exists($thumb_path)) {
 
-			$img_path = phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/'.$this->name;
+			$img_path = $this->config['path']['photos'] . '/' . implode('/', $this->path) . '/' . $this->name;
 			$thumbnail = exif_thumbnail($img_path);
 
-			if($thumbnail == false) {
+			if ($thumbnail == false) {
+			
+				$old = imagecreatefromjpeg($img_path);
 
-				if(exif_imagetype($img_path) !== IMAGETYPE_JPEG) die('The picture is not a jpeg');
-				$obsah = file_get_contents($img_path);
+				$old_x = imagesx($old);
+				$old_y = imagesy($old);
 
-				$old = imagecreatefromstring($obsah);
-				$old_x = ImageSx($old);
-				$old_y = ImageSy($old);
-
-				if($old_y > $old_x){
+				if ($old_y > $old_x) {
 					$k = $old_y / 120;
 					$new_y = 120;
 					$new_x = floor($old_x / $k);
-				}else{
+				} else {
 					$k = $old_x / 160;
 					$new_x = 160;
 					$new_y = floor($old_y / $k);
@@ -277,219 +248,39 @@ class phoB {
 
 				$nahled = imagecreatetruecolor($new_x, $new_y);
 
-				ImageCopyResized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
+				imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
 				imagejpeg($nahled, $thumb_path);
 				imagedestroy($nahled);
-				$this->thumbnail = file_get_contents($thumb_path);
+				
+				readfile($thumb_path);
+				exit;
 
 			}else{
+			
 				file_put_contents($thumb_path, $thumbnail);
-				$this->thumbnail = $thumbnail;
+				echo $thumbnail;
+				exit;
+
 			}
+
 		} else {
-			$this->thumbnail = file_get_contents($thumb_path);
+
+			readfile($thumb_path);
+			exit;
+
 		}
 	}
-
-	protected function login() {
-		if(session_id() == "") session_start();
-		if(!isset($_SESSION['nick'])) $_SESSION['nick'] = '';
-		if(!isset($_SESSION['pass'])) $_SESSION['pass'] = '';
-		if(($this->config['admin_nick'] == $_SESSION['nick']) && (md5($this->config['admin_pass']) == $_SESSION['pass']) )	return true;
-		return false;
+	
+	private function set($var, $val)
+	{
+		$this->vars[$var] = $val;
 	}
-
-	public function scan() {
-
-		$data = array();
-		$path = $this->path;
-		$dirs = split('/', $path);
-
-		$dir_now = '';
-
-		foreach($dirs as $dir) {
-			$dir_now = phoB::delSlash($dir_now.'/'.$dir);
-			$folders[] = array('name' => $dir, 'path' => $dir_now);
-		}
-
-		$this->data['folders'] = $folders;
-		$scan_dir = $this->config['server_path'].'/'.$this->config['dir_data'].'/'.$path;
-		if(!file_exists($scan_dir)) {
-			$this->scan_error = true;
-		}
-
-		$files = @scandir($scan_dir);
-		if(!is_array($files)) $files = array();
-		$i = 0;
-		foreach($files as $entry)
-		{
-			if(!phoB::isDir($entry)) continue;
-			if( ($entry{0} == '.' && $entry != '..') ||
-				($path == '' && $entry == '..') ||
-				(!$this->config['main_show_dirup'] && $entry == '..')
-				) continue;
-
-			$i++;
-			$data[$i]['name']	= $entry;
-			$data[$i]['path']	= phoB::delSlash($path.'/'.$entry);
-			$data[$i]['dir']		= true;
-			$data[$i]['show_name']	= $entry;
-
-			if($data[$i]['name'] == '..') {
-				$new_path = null;
-
-				$adr = split('/', $data[$i]['path']);
-				for($j=0; $j<count($adr)-2; $j++) {
-					$new_path .= '/'. $adr[$j];
-				}
-
-				$data[$i]['path'] = phoB::delSlash($new_path);
-				$data[$i]['show_name'] = $this->__('Nahoru');
-			} else {
-				$data[$i]['show_name'] = $data[$i]['name'];
-			}
-		}
-
-		foreach($files as $entry) {
-			if(phoB::isDir($entry) || !phoB::isImg($entry)) continue;
-
-			$i++;
-			if($this->name == $entry) $this->id = $i;
-			$data[$i]['name']	= $entry;
-			$data[$i]['path']	= phoB::delSlash($path.'/'.$entry);
-			$data[$i]['dir']	= false;
-			$data[$i]['show_name']	= $entry;
-		}
-
-		return $data;
+	
+	private function renderTemplate($name)
+	{
+		extract($this->vars);
+		require $this->skinsDir . '/' . $name . '.phtml';
+		return ob_get_clean();
 	}
-
-	public function parse() {
-		if ($this->header_url != '') {
-			header($this->header_url);
-			return null;
-		}elseif($this->thumbnail != '') {
-			return $this->thumbnail;
-		}else{
-			return $this->template();
-		}
-	}
-
-	protected function template() {
-
-		$skin_url = $this->config['url_base'].'/'.$this->config['dir_skins'].'/'.$this->config['main_skin'];
-
-		$this->setVar('skin_url', $skin_url);
-		$this->setVar('site_url', $this->config['url_main']);
-		$this->setVar('site_name', $this->config['main_site_name']);
-
-		$path_item[] = array('link' => $this->config['url_browse']."list/", 'name' => $this->__('kořenový adresář'));
-		$title_path = $this->__('kořenový adresář')." » ";
-
-		if($this->path != '' && $this->scan_error == false)
-			foreach ($this->data['folders'] as $dir_array)
-			{
-				$path_item[] = array('link' => $this->config['url_browse']."list/".$dir_array['path'], 'name' => $dir_array['name']);
-				$title_path .= $dir_array['name']." » ";
-			}
-
-		switch($this->action) {
-		case 'preview':
-
-			$label = '';
-			$title_path .= $this->name;
-			$link = $this->config['server_path'].'/'.phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/'.$this->name;
-			$url_link = phoB::delSlash($this->config['url_base'].'/'.$this->config['dir_data'].'/'.$this->path).'/'.$this->name;
-
-			if(file_exists($link)) {
-
-				$path = phoB::delSlash($this->config['dir_data'].'/'.$this->path).'/comments.phob';
-				if( file_exists($path) ) {
-					$label = $this->readComment( $path, $this->name );
-					$this->setVar('label', $this->__('Komentář: ').$label);
-				}
-				$this->setVar('setLabel', !empty($label));
-
-				if($this->is_login){
-					$this->setVar('set_label', "
-					<form action=\"".phoB::delSlash($this->config['url_browse']."admin/save/".$this->path)."/".$this->name."\" method=\"post\">
-					<input type=\"text\" name=\"label\" id=\"label\" value=\"$label\"/>
-					<input type=\"submit\" value=\"".$this->__('Uložit popis')."\" />
-					</form>");
-				}
-
-				if($this->getimg($this->id, -1) != ''){
-					$this->setVar('left_thumb', true);
-					$this->setVar('lt_link', phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$this->getImg($this->id, -1));
-					$this->setVar('lt_name', $this->__('Předchozí fotka'));
-					$this->setVar('lt_img_link', phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$this->getImg($this->id, -1));
-				}else{
-					$this->setVar('left_thumb', false);
-				}
-
-				if($this->getimg($this->id, 1) != ''){
-					$this->setVar('right_thumb', true);
-					$this->setVar('rt_link', phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$this->getImg($this->id, 1));
-					$this->setVar('rt_name', $this->__('Následující fotka'));
-					$this->setVar('rt_img_link', phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$this->getImg($this->id, 1));
-				}else{
-					$this->setVar('right_thumb', false);
-				}
-
-				$this->setVar('link', $url_link);
-				$this->setVar('exists', true);
-			}else{
-				$this->setVar('exists', false);
-			}
-		break;
-		case 'list':
-			$items = array();
-			foreach($this->data['list'] as $record) {
-				if($record['dir']) {
-					$items[] = array( 'link' => $this->config['url_browse']."list/".$record['path'],
-									  'type' => 'folder',
-									  'name' => $record['show_name'],
-									  'img_link' => $skin_url."/folder.png");
-				} else {
-					$items[] = array( 'link' => phoB::delSlash($this->config['url_browse']."preview/".$this->path)."/".$record['name'],
-									  'type' => 'photo',
-									  'name' => '',
-									  'img_link' => phoB::delSlash($this->config['url_browse']."thumbnail/".$this->path)."/".$record['name']);
-				}
-			}
-			if($this->scan_error){
-				$this->setVar('exists', false);
-			}else{
-				$this->setVar('exists', true);
-			}
-			$this->setVar('items', $items);
-		break;
-		case 'admin':
-			$this->setVar('title_path', $this->__('Administrace'));
-			if($this->is_login) {
-				$this->setVar('admin', $this->__('Jste přihlášeni - je povolena editace popisků fotek.').'<br />'.
-											$this->__('Pokračujte na').' <a href="'.$this->config['url_browse'].'list">'.
-											$this->__('fotogalerii').'</a>.<br />'.
-											$this->__('Po dokončení editace popisků se').' <a href="'.$this->config['url_browse'].'admin/logout">'.
-											$this->__('odhlašte').'</a>.');
-			}else{
-				$this->setVar('admin', "<form action=\"".$this->config['url_browse']."admin/login\" method=\"post\">".
-											"<input type=\"text\" name=\"nick\" /><br />".
-											"<input type=\"password\" name=\"pass\"><br /><input type=\"submit\" value=\"".$this->__('Přihlásit')."\"/></form>");
-			}
-		break;
-		case 'random':
-			$this->setVar('url', phoB::delSlash($this->config['absolute_url'].$this->config['dir_data'].'/'.$this->path).'/'.$this->name);
-			$this->setVar('preview_url', phoB::delSlash($this->config['absolute_url'].$this->config['parametr']."preview/".$this->path)."/".$this->name);
-			$this->setVar('thumbnail_url', phoB::delSlash($this->config['absolute_url'].$this->config['parametr']."thumbnail/".$this->path)."/".$this->name);
-		break;
-		}
-
-		$this->setVar('path_item', $path_item);
-		$this->setVar('title_path', $title_path);
-
-		return $this->fetchTemplate();
-
-	}
+	
 }
-?>
