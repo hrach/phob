@@ -93,7 +93,9 @@ class Phob
 	
 	private function route()
 	{
-		$url = trim($_GET['url'], '/');
+		$url = str_replace('/..', '', $_GET['url']);
+		$url = trim($url, '/');
+		
 		
 		if (empty($url)) {
 			$url = 'list';
@@ -118,8 +120,14 @@ class Phob
 	private function scan()
 	{
 		$path = implode('/', $this->path);
+		$scanPath = $this->photoDir . '/' . $path;
+		
+		if (!file_exists($scanPath)) {
+			$this->dirItems = false;
+			return;
+		}
 
-		$folder = new DirectoryIterator($this->photoDir . '/' . $path);
+		$folder = new DirectoryIterator($scanPath);
 		$photos = array();
 		$dirs = array();
 		$i = 0;
@@ -161,7 +169,12 @@ class Phob
 	private function listDir()
 	{
 		$this->setTree();
-		$this->set('photos', $this->dirItems);
+		if ($this->dirItems !== false) {
+			$this->set('exists', true);
+			$this->set('photos', $this->dirItems);
+		} else {
+			$this->set('exists', false);
+		}
 
 		return $this->renderTemplate('list');
 	}

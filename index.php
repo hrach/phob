@@ -6,7 +6,7 @@ $config['path']['photos'] 		= 'photos';
 $config['path']['thumbs'] 		= 'thumbs';
 $config['path']['skins'] 		= 'skins';
 
-$config['main']['site_name']	= 'Tento nadpis zmen v index.php ;)';
+$config['main']['site_name']	= 'PhotoBrowser';
 $config['main']['skin']			= 'basic';
 $config['main']['show_dirup']	= true;
 

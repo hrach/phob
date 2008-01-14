@@ -24,6 +24,7 @@
 
 	<div id="main">
 	<?php
+	if ($exists) {
 		foreach($photos as $photo) {
 			if ($photo['type'] == 'dir') {
 	?>
@@ -40,6 +41,9 @@
 	<?php			
 			}
 		}
+	} else {
+		echo "<p>Zadaný adresář neexistuje.</p>";
+	}
 	?>
 	<br style="clear: left" /><br />
 	</div>
