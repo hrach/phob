@@ -134,30 +134,43 @@ class Phob
 		
 		
 		foreach ($folder as $file) {
+			$fileName = $file->getFileName();
 			if ($file->isDir()) {
-				if ($file->getFileName() === '.'
-				|| ($file->getFileName() === '..' && !$this->config['main']['show_dirup'])
-				|| ($file->getFileName() === '..' && empty($path))
+				if ($fileName === '.'
+				|| ($fileName === '..' && !$this->config['main']['show_dirup'])
+				|| ($fileName === '..' && empty($path))
 				) {
 					continue;
 				}
 				
-				$dirs[] = array(
-					'type' => 'dir',
-					'name' => ($file->getFileName() !== '..') ? $file->getFileName() : $this->__('Nahoru [..]'),
-					'path' => $this->getBase() . trim('list/' . $path, '/') . '/' . $file->getFileName()
-				);
-			} elseif(preg_match("/.jpe?g$/", strtolower($file->getFileName()))) {
+				if ($fileName === '..') {
+					$dPath = $this->path;
+					array_pop($dPath);
+					$dPath = implode('/', $dPath);
+
+					$dirs[] = array(
+						'type' => 'dir',
+						'name' => $this->__('Nahoru [..]'),
+						'path' => $this->getBase() . trim('list/' . $dPath)
+					);
+				} else {
+					$dirs[] = array(
+						'type' => 'dir',
+						'name' => $fileName,
+						'path' => $this->getBase() . trim('list/' . $path, '/') . '/' . $fileName
+					);
+				}
+			} elseif(preg_match("/.jpe?g$/", strtolower($fileName))) {
 				++$i;
-				if ($this->name === $file->getFileName()) {
+				if ($this->name === $fileName) {
 					$this->photoNum = $i;
 				}
 
 				$photos[] = array(
 					'type' => 'photo',
-					'name' => $file->getFileName(),
-					'path' => $this->getBase() . trim('view/' . $path, '/') . '/' . $file->getFileName(),
-					'thumb' => $this->getBase() . trim('preview/' . $path, '/') . '/' . $file->getFileName(),
+					'name' => $fileName,
+					'path' => $this->getBase() . trim('view/' . $path, '/') . '/' . $fileName,
+					'thumb' => $this->getBase() . trim('preview/' . $path, '/') . '/' . $fileName,
 				);
 			}
 		}
