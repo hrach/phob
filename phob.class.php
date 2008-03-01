@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * PHOB - PHOTO BROWSER
+ *
+ * @author     Jan Skrasek <skrasek.jan@gmail.com>
+ * @copyright  Copyright (c) 2008, Jan Skrasek
+ * @version    0.2
+ * @package    PhoB
+ */
+
+
 class Phob
 {
 
@@ -18,16 +28,14 @@ class Phob
 	private $skinsDir;
 	/** @var array $config */
 	private $config = array();
-
-
 	/** @var array $dirItems */
 	private $dirItems = array();
 	/** @var array $vars */
 	private $vars = array();
 	/** @var  integer $photoNum */
 	private $photoNum = -1;
-	
-	
+
+
 	public function __construct($config)
 	{
 		if (!is_array($config)) {
@@ -43,7 +51,7 @@ class Phob
 		$this->set('siteUrl', dirname($_SERVER['PHP_SELF']));
 		$this->config = $config;
 	}
-	
+
 	public function render()
 	{
 		switch ($this->action) {
@@ -57,9 +65,6 @@ class Phob
 				break;
 			case 'preview':
 				$this->preview();
-				break;
-			case 'admin':
-				return $this->admin();
 				break;
 			case 'random':
 				$random = $this->get_random($this->dir_list($this->sub_get));
@@ -90,21 +95,18 @@ class Phob
 			return $key;
 		}
 	}
-	
+
 	private function route()
 	{
-		$url = str_replace('/..', '', $_GET['url']);
+		$url = str_replace('/..', '', isset($_GET['url']) ? $_GET['url'] : '');
 		$url = trim($url, '/');
-		
-		
 		if (empty($url)) {
 			$url = 'list';
 		}
 
 		$url = explode('/', $url);
-		
-		$allowed = array('view', 'preview', 'list', 'random', 'admin');
-		
+		$allowed = array('view', 'preview', 'list', 'random');
+
 		if (in_array($url[0], $allowed)) {
 			$this->action = array_shift($url);
 		}
@@ -116,12 +118,11 @@ class Phob
 
 		$this->path = $url;
 	}
-	
+
 	private function scan()
 	{
 		$path = implode('/', $this->path);
 		$scanPath = $this->photoDir . '/' . $path;
-		
 		if (!file_exists($scanPath)) {
 			$this->dirItems = false;
 			return;
@@ -131,8 +132,7 @@ class Phob
 		$photos = array();
 		$dirs = array();
 		$i = 0;
-		
-		
+
 		foreach ($folder as $file) {
 			$fileName = $file->getFileName();
 			if ($file->isDir()) {
@@ -142,7 +142,7 @@ class Phob
 				) {
 					continue;
 				}
-				
+
 				if ($fileName === '..') {
 					$dPath = $this->path;
 					array_pop($dPath);
@@ -178,7 +178,7 @@ class Phob
 		$this->photosSum = $i;
 		$this->dirItems = array_merge($dirs, $photos);
 	}
-	
+
 	private function listDir()
 	{
 		$this->setTree();
@@ -191,16 +191,21 @@ class Phob
 
 		return $this->renderTemplate('list');
 	}
-	
+
 	private function view()
 	{
 		$this->setTree();
 		$path = $this->config['path']['photos'] . '/' . implode('/', $this->path) . '/' . $this->name;
-		
+
 		if (file_exists(dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $path)) {
 			$this->set('exists', true);
 			$this->set('photoUrl', $path);
-			
+
+			$commentPath = $this->config['path']['photos'] . '/' . implode('/', $this->path) . '/comments.txt';
+			if (file_exists(dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $commentPath)) {
+				$this->set('label', $this->readComment($commentPath, $this->name));
+			}
+
 			$this->set('next', $this->getPhoto($this->photoNum, +1));
 			$this->set('prev', $this->getPhoto($this->photoNum, -1));
 		} else {
@@ -209,7 +214,7 @@ class Phob
 
 		return $this->renderTemplate('view');
 	}
-	
+
 	private function getPhoto($i, $direction)
 	{
 		if (($i + $direction) < 1 || ($i + $direction) > $this->photosSum) {
@@ -219,11 +224,9 @@ class Phob
 		if ($this->dirItems[$i + $direction]['type'] === 'dir') {
 			return $this->getPhoto($i + $direction, $direction);
 		}
-		
 		return $this->dirItems[$i + $direction];
 	}
 
-	
 	private function setTree()
 	{
 		$dirTree = array(
@@ -241,10 +244,9 @@ class Phob
 				'path' => $this->getBase() . $cache,
 			);
 		}
-
 		$this->set('dirTree', $dirTree);
 	}
-	
+
 	private function preview()
 	{
 		header('Content-type: image/jpeg');
@@ -256,7 +258,6 @@ class Phob
 			$thumbnail = exif_thumbnail($img_path);
 
 			if ($thumbnail == false) {
-			
 				$old = imagecreatefromjpeg($img_path);
 
 				$old_x = imagesx($old);
@@ -280,33 +281,40 @@ class Phob
 				
 				readfile($thumb_path);
 				exit;
-
 			}else{
-			
 				file_put_contents($thumb_path, $thumbnail);
 				echo $thumbnail;
 				exit;
-
 			}
-
 		} else {
-
 			readfile($thumb_path);
 			exit;
-
 		}
 	}
-	
+
+	private function readComment($path, $name)
+	{
+		$file = file($path);
+		foreach ($file as $line => $data) {
+			$rowName = substr($data, 0, strpos($data, '	'));
+			if ($rowName == $name) {
+				return substr($data, strpos($data, '	'));
+			}
+		}
+
+		return '';
+	}
+
 	private function set($var, $val)
 	{
 		$this->vars[$var] = $val;
 	}
-	
+
 	private function renderTemplate($name)
 	{
 		extract($this->vars);
 		require $this->skinsDir . '/' . $name . '.phtml';
 		return ob_get_clean();
 	}
-	
+
 }

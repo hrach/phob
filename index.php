@@ -1,4 +1,5 @@
 <?php
+
 ob_start();
 
 $config['mod_rewrite']			= false;
@@ -7,19 +8,16 @@ $config['path']['thumbs'] 		= 'thumbs';
 $config['path']['skins'] 		= 'skins';
 
 $config['main']['site_name']	= 'PhotoBrowser';
-$config['main']['skin']			= 'basic';
+$config['main']['skin']			= 'default';
 $config['main']['show_dirup']	= true;
 
-//$config['admin_nick'] = 'admin';
-//$config['admin_pass'] = '1234';
 
+// =====[PHOB]==============================
 
 if (version_compare(PHP_VERSION, '5.0', '<')) {
 	die('PhoB needs PHP 5 or above!!!');
 }
 
-require_once('phob.class.php');
+require_once dirname(__FILE__) . '/phob.class.php';
 $phob = new PhoB($config);
 echo $phob->render();
-
-ob_end_flush();
