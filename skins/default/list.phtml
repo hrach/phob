@@ -14,9 +14,9 @@
 <body>
 
 <div id="container">
-	<a href="<?php echo $siteUrl ?>"><h1><?php echo $siteName ?></h1></a>
+	<div id="header">
+		<h1><a href="<?php echo $siteUrl ?>"><?php echo $siteName ?></a></h1>
 
-	<div id="dirNav">
 		<?php foreach($dirTree as $item) { ?>
 			<a href="<?php echo $item['path'] ?>"><?php echo $item['name'] ?></a> »
 		<?php } ?>

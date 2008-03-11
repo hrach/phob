@@ -1,50 +1,42 @@
 body {
-	background: #fff url("bg.png") repeat-x top;
+	background: white url("bg.png") repeat-x;
+	font-family: 'Trebuchet MS', 'Geneva CE', lucida, sans-serif;
 	text-align: center;
+	padding: 10px;
+	margin: 0;
 }
 
-img {
+a img {
 	border: 0;
 }
 
 a {
 	color: #3e3e3e;
-	font-family: Verdana, 'Geneva CE', lucida, sans-serif;
-	font-size: 13px;
 	outline: 0;
 	text-decoration: none;
 }
 
 h1 {
-	color: #3b6d9f;
-	font-family: Verdana, 'Geneva CE', lucida, sans-serif;
-	margin: 0;
-	position: absolute;
-	top: 8px;
+	margin: 0 0 10px;
+	font-size: 25px;
 }
 
 #container {
 	display: block;
 	margin: 0 auto;
-	width: 930px;
-	text-align: center !important;
+	width: 935px;
 	text-align: left;
 }
 
 #main {
-	display: block;
-	position: absolute;
-	top: 90px;
+	margin-top: 20px;
 	text-align: center;
-	width: 935px;
 }
 
-#dirNav {
-	display: block;
-	font-family: 'Trebuchet MS', 'Geneva CE', lucida, sans-serif;
+#header {
 	font-size: 15px;
-	position: absolute;
-	top: 52px;
+	height: 55px;
+	padding-left: 10px;
 }
 
 #dirNav a {
@@ -57,7 +49,7 @@ h1 {
 }
 
 a.item {
-	background: #fff url('item_blue.png') no-repeat;
+	background: #fff url('item.png') no-repeat;
 	display: block;
 	float: left;
 	height: 141px;
@@ -78,18 +70,17 @@ a.dir span {
 }
 
 a.item:hover {
-	background-image: url('item_green.png');
+	background-image: url('item_hover.png');
 }
 
 a.thumb {
-	background-image: url('item_white.png');
+	background-image: url('item_transparent.png');
 	display: block;
 	position: absolute;
 	height: 141px;
 	width: 177px;
-	top: 45px;
-	margin-left: 10px;
-	margin-right: 10px;
+	top: 145px;
+	margin: 0 25px;
 }
 
 a.thumb img, a.photo img {
@@ -103,20 +94,16 @@ a.thumb img, a.photo img {
 }
 
 a img#main_img {
-	border-bottom: 10px solid white;
 	max-width: 650px;
 	width: auto !important;
 	width: 650px;
 }
 
-a:hover img#main_img {
-	border-color: #def1fc;
-}
-
 div.label {
 	background-color: #def1fc;
-	border-bottom: 1px solid #3b6d9f;
+	border-bottom: 1px solid #96b4bf;
 	margin: 0 auto 20px;
+	padding: 1px 5px;
 	text-align: left;
 	width: 650px;
 }
