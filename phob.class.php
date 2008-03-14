@@ -258,27 +258,31 @@ class Phob
 			$thumbnail = exif_thumbnail($img_path);
 
 			if ($thumbnail == false) {
-				$old = imagecreatefromjpeg($img_path);
+				if (class_exists('Imagick')) {
+					$im = new Imagick($img_path);
 
-				$old_x = imagesx($old);
-				$old_y = imagesy($old);
-
-				if ($old_y > $old_x) {
-					$k = $old_y / 120;
-					$new_y = 120;
-					$new_x = floor($old_x / $k);
+					$thumb = $im->clone();
+					$thumb->thumbnailImage(160, 120, true);
+					$thumb->writeImage($thumb_path);
 				} else {
-					$k = $old_x / 160;
-					$new_x = 160;
-					$new_y = floor($old_y / $k);
+					$old = imagecreatefromjpeg($img_path);
+					$old_x = imagesx($old);
+					$old_y = imagesy($old);
+					if ($old_y > $old_x) {
+						$k = $old_y / 120;
+						$new_y = 120;
+						$new_x = floor($old_x / $k);
+					} else {
+						$k = $old_x / 160;
+						$new_x = 160;
+						$new_y = floor($old_y / $k);
+					}
+					$nahled = imagecreatetruecolor($new_x, $new_y);
+
+					imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
+					imagejpeg($nahled, $thumb_path);
+					imagedestroy($nahled);
 				}
-
-				$nahled = imagecreatetruecolor($new_x, $new_y);
-
-				imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
-				imagejpeg($nahled, $thumb_path);
-				imagedestroy($nahled);
-				
 				readfile($thumb_path);
 				exit;
 			}else{
@@ -296,12 +300,12 @@ class Phob
 	{
 		$file = file($path);
 		foreach ($file as $line => $data) {
-			$rowName = substr($data, 0, strpos($data, '	'));
+			$tab = strpos($data, "\t");
+			$rowName = substr($data, 0, $tab);
 			if ($rowName == $name) {
-				return substr($data, strpos($data, '	'));
+				return substr($data, $tab);
 			}
 		}
-
 		return '';
 	}
 
