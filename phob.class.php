@@ -46,7 +46,9 @@ class Phob
 		$this->skinsDir = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $config['path']['skins'] . '/' . $config['main']['skin'];
 		$this->route();
 
-		$this->set('skinPath', dirname($_SERVER['PHP_SELF']) . '/' . $config['path']['skins'] . '/' . $config['main']['skin']);
+		
+
+		$this->set('skinPath', '/' . trim(dirname($_SERVER['PHP_SELF']) . '/' . $config['path']['skins'], '/') . '/' . $config['main']['skin']);
 		$this->set('siteName', $config['main']['site_name']);
 		$this->set('siteUrl', dirname($_SERVER['PHP_SELF']));
 		$this->config = $config;
@@ -73,16 +75,24 @@ class Phob
 				break;
 		}
 	}
-	
+
 	private function getBase()
 	{
 		if ($this->config['mod_rewrite']) {
-			return dirname($_SERVER['PHP_SELF']) . '/';
+			$base = trim(dirname($_SERVER['PHP_SELF']), '/');
+			if (!empty($base)) {
+				$base .= '/';
+			}
+			return $base;
 		} else {
-			if (basename($_SERVER['PHP_SELF']) === 'index.php') {
-				return dirname($_SERVER['PHP_SELF']) . '/?url=';
+			$base = trim(dirname($_SERVER['PHP_SELF']), '/');
+			if (!empty($base)) {
+				$base .= '/';
+			}
+			if (basename($_SERVER['PHP_SELF']) == 'index.php') {
+				return trim($base . '?url=', '/');
 			} else {
-				return $_SERVER['PHP_SELF'] . '?url=';
+				return trim($_SERVER['PHP_SELF'] . '?url=', '/');
 			}
 		}
 	}
@@ -131,19 +141,16 @@ class Phob
 		$folder = new DirectoryIterator($scanPath);
 		$photos = array();
 		$dirs = array();
-		$i = 0;
-
 		foreach ($folder as $file) {
 			$fileName = $file->getFileName();
-			if ($file->isDir()) {
-				if ($fileName === '.'
-				|| ($fileName === '..' && !$this->config['main']['show_dirup'])
-				|| ($fileName === '..' && empty($path))
-				) {
-					continue;
-				}
 
-				if ($fileName === '..') {
+			if ($fileName === '.' || ($fileName === '..' && !$this->config['main']['show_dirup'])
+								  || ($fileName === '..' && empty($path))) {
+					continue;
+			}
+
+			if ($file->isDir()) {
+				if ($fileName == '..') {
 					$dPath = $this->path;
 					array_pop($dPath);
 					$dPath = implode('/', $dPath);
@@ -151,32 +158,32 @@ class Phob
 					$dirs[] = array(
 						'type' => 'dir',
 						'name' => $this->__('Nahoru [..]'),
-						'path' => $this->getBase() . trim('list/' . $dPath)
+						'path' => '/' . $this->getBase() . 'list/' . trim($dPath, '/')
 					);
 				} else {
 					$dirs[] = array(
 						'type' => 'dir',
 						'name' => $fileName,
-						'path' => $this->getBase() . trim('list/' . $path, '/') . '/' . $fileName
+						'path' => '/' . $this->getBase() . 'list/' . trim($path . '/' . $fileName, '/')
 					);
 				}
 			} elseif(preg_match("/.jpe?g$/", strtolower($fileName))) {
-				++$i;
-				if ($this->name === $fileName) {
-					$this->photoNum = $i;
-				}
-
 				$photos[] = array(
 					'type' => 'photo',
 					'name' => $fileName,
-					'path' => $this->getBase() . trim('view/' . $path, '/') . '/' . $fileName,
-					'thumb' => $this->getBase() . trim('preview/' . $path, '/') . '/' . $fileName,
+					'path' => '/' . $this->getBase() . 'view/' . trim($path . '/' . $fileName, '/'),
+					'thumb' => '/' . $this->getBase() . 'preview/' . trim($path . '/' . $fileName, '/'),
 				);
 			}
 		}
-		
-		$this->photosSum = $i;
+
 		$this->dirItems = array_merge($dirs, $photos);
+		foreach ($this->dirItems as $i => $item) {
+			if ($this->name == $item['name']) {
+				$this->photoNum = $i;
+				break;
+			}
+		}
 	}
 
 	private function listDir()
@@ -199,7 +206,11 @@ class Phob
 
 		if (file_exists(dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $path)) {
 			$this->set('exists', true);
-			$this->set('photoUrl', $path);
+			$base = trim(dirname($_SERVER['PHP_SELF']), '/');
+			if (!empty($base)) {
+				$base .= '/';
+			}
+			$this->set('photoUrl', '/' . $base . $path);
 
 			$commentPath = $this->config['path']['photos'] . '/' . implode('/', $this->path) . '/comments.txt';
 			if (file_exists(dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $commentPath)) {
@@ -217,13 +228,14 @@ class Phob
 
 	private function getPhoto($i, $direction)
 	{
-		if (($i + $direction) < 1 || ($i + $direction) > $this->photosSum) {
+		if (!isset($this->dirItems[$i + $direction])) {
 			return false;
 		}
 
-		if ($this->dirItems[$i + $direction]['type'] === 'dir') {
+		if ($this->dirItems[$i + $direction]['type'] == 'dir') {
 			return $this->getPhoto($i + $direction, $direction);
 		}
+
 		return $this->dirItems[$i + $direction];
 	}
 
@@ -232,7 +244,7 @@ class Phob
 		$dirTree = array(
 			array(
 				'name' => $this->__('Kořenový adresář'),
-				'path' => $this->getBase() . 'list/',
+				'path' => '/' . $this->getBase() . 'list/',
 			)
 		);
 
@@ -241,7 +253,7 @@ class Phob
 			$cache .= $dir . '/';
 			$dirTree[] = array(
 				'name' => $dir,
-				'path' => $this->getBase() . $cache,
+				'path' => '/' . $this->getBase() . $cache,
 			);
 		}
 		$this->set('dirTree', $dirTree);

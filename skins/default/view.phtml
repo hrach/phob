@@ -7,8 +7,9 @@
 </head>
 <body>
 
-<div id="container">
+<div id="bg">
 
+<div id="container">
 	<div id="header">
 		<a href="<?php echo $siteUrl ?>"><h1><?php echo $siteName ?></h1></a>
 		<?php foreach($dirTree as $item) { ?>
@@ -36,8 +37,8 @@
 		<?php } ?>
 
 
-		<a href="<?php echo $siteUrl . '/' . $photoUrl ?>">
-			<img id="main_img" src="<?php echo $siteUrl . '/' . $photoUrl ?>"/>
+		<a href="<?php echo $photoUrl ?>">
+			<img id="main_img" src="<?php echo $photoUrl ?>"/>
 		</a>
 
 	<?php } else { ?>
@@ -48,6 +49,8 @@
 
 	<br style="clear: left" /><br />
 	</div>
+</div>
+
 </div>
 </body>
 </html>
