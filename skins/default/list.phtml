@@ -1,53 +1,50 @@
+<?
+	$title = '';
+	foreach ($dirTree as $node) $title .= "$node[name] » ";
+?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
-	<link rel="stylesheet" href="<?php echo $skinPath ?>/style.css" type="text/css" media="screen" />
-	<?php
-		$titlePath = "";
-		foreach($dirTree as $item) {
-			$titlePath .= $item['name'] . " » ";
-		}
-	?>
-	<title><?php echo $siteName ." :: ". $titlePath ?></title>
+	<link rel="stylesheet" href="<?= phob::$media ?>/style.css" type="text/css" media="screen" />
+	<title><?= $siteName ?> :: <?= $title ?></title>
 </head>
 <body>
-<div id="bg">
-<div id="container">
+<div id="page">
 	<div id="header">
-		<h1><a href="<?php echo $siteUrl ?>"><?php echo $siteName ?></a></h1>
+		<h1><a href="<?= phob::$base ?>"><?= $siteName ?></a></h1>
 
-		<?php foreach($dirTree as $item) { ?>
-			<a href="<?php echo $item['path'] ?>"><?php echo $item['name'] ?></a> »
+		<div id="navigation">
+		<? foreach ($dirTree as $item) { ?>
+			<a href="<?= $item['path'] ?>"><?= $item['name'] ?></a> »
 		<?php } ?>
+		</div>
 	</div>
 
 	<div id="main">
-	<?php
-	if ($exists) {
-		foreach($photos as $photo) {
+	<?
+		$i = 1;
+		foreach ($photos as $photo) {
 			if ($photo['type'] == 'dir') {
 	?>
-				<a href="<?php echo $photo['path'] ?>" class="item dir">
-					<span><?php echo $photo['name'] ?></span>
-				</a>
-	<?php
-			} else {
-	?>
-				<a href="<?php echo $photo['path'] ?>" class="item photo">
-					<img src="<?php echo $photo['thumb'] ?>" />
-					<span><?php echo $photo['name'] ?></span>
-				</a>
-	<?php			
+			<a href="<?= $photo['path'] ?>" class="item dir">
+				<span><?= $photo['name'] ?></span>
+			</a>
+	<?		} else { ?>
+			<a href="<?= $photo['path'] ?>" class="item photo">
+				<img src="<?= $photo['thumb'] ?>" />
+				<span><?= $photo['name'] ?></span>
+			</a>
+	<?
+			}
+			
+			if ($i++ % 6 == 0) {
+				echo '<br style="clear: left" />';
 			}
 		}
-	} else {
-		echo "<p>Zadaný adresář neexistuje.</p>";
-	}
 	?>
 	<br style="clear: left" /><br />
 	</div>
-</div>
 </div>
 </body>
 </html>

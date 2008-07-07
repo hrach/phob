@@ -1,336 +1,445 @@
 <?php
 
 /**
- * PHOB - PHOTO BROWSER
+ * PHOB - photo browser
  *
- * @author     Jan Skrasek <skrasek.jan@gmail.com>
- * @copyright  Copyright (c) 2008, Jan Skrasek
- * @version    0.2
- * @package    PhoB
+ * @author      Jan Skrasek <skrasek.jan@gmail.com>
+ * @copyright   Copyright (c) 2008, Jan Skrasek
+ * @version     0.5.5
+ * @link        http://phob.php5.cz
+ * @package     PhoB
  */
+
+
+
+if (version_compare(PHP_VERSION, '5.0', '<')) {
+    die('PhoB needs PHP 5 or above!!!');
+}
 
 
 class Phob
 {
 
-	/** @var array $lang	*/
-	public $lang = array();
 
-	/** @var string $action */
-	private $action;
-	/** @var array $path */
-	private $path = array();
-	/** @var string $name */
-	private $name;
-	/** @var string $photoDir */
-	private $photoDir;
-	/** @var string $skinsDir */
-	private $skinsDir;
-	/** @var array $config */
-	private $config = array();
-	/** @var array $dirItems */
-	private $dirItems = array();
-	/** @var array $vars */
-	private $vars = array();
-	/** @var  integer $photoNum */
-	private $photoNum = -1;
+    private static $root;
+    private static $base;
+    private static $media;
 
 
-	public function __construct($config)
-	{
-		if (!is_array($config)) {
-			die($this->__('Špatná konfigurace.'));
-		}
-		
-		$this->photoDir = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $config['path']['photos'];
-		$this->skinsDir = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $config['path']['skins'] . '/' . $config['main']['skin'];
-		$this->route();
+    public $lang = array();
 
-		
+    private $action;
+    private $path = array();
+    private $name;
+    private $config = array();
+    private $items = array();
+    private $vars = array();
+    private $num = -1;
 
-		$this->set('skinPath', '/' . trim(dirname($_SERVER['PHP_SELF']) . '/' . $config['path']['skins'], '/') . '/' . $config['main']['skin']);
-		$this->set('siteName', $config['main']['site_name']);
-		$this->set('siteUrl', dirname($_SERVER['PHP_SELF']));
-		$this->config = $config;
-	}
 
-	public function render()
-	{
-		switch ($this->action) {
-			case 'view':
-				$this->scan();
-				return $this->view();
-				break;
-			case 'list':
-				$this->scan();
-				return $this->listDir();
-				break;
-			case 'preview':
-				$this->preview();
-				break;
-			case 'random':
-				$random = $this->get_random($this->dir_list($this->sub_get));
-				$this->path = $random['path'];
-				$this->name = $random['name'];
-				break;
-		}
-	}
+    /**
+     * Konstruktor
+     * @param   array   konfigurace
+     * @return  void
+     */
+    public function __construct($config)
+    {
+        $this->config = $config;
 
-	private function getBase()
-	{
-		if ($this->config['mod_rewrite']) {
-			$base = trim(dirname($_SERVER['PHP_SELF']), '/');
-			if (!empty($base)) {
-				$base .= '/';
-			}
-			return $base;
-		} else {
-			$base = trim(dirname($_SERVER['PHP_SELF']), '/');
-			if (!empty($base)) {
-				$base .= '/';
-			}
-			if (basename($_SERVER['PHP_SELF']) == 'index.php') {
-				return trim($base . '?url=', '/');
-			} else {
-				return trim($_SERVER['PHP_SELF'] . '?url=', '/');
-			}
-		}
-	}
+        if ($config['mod_rewrite']) {
+            self::$root = self::$media = self::$base = dirname($_SERVER['PHP_SELF']);
+        } else {
+            self::$root = self::$media = '/' . dirname(trim($_SERVER['PHP_SELF'], '/'));
+            self::$base = '/' . trim($_SERVER['PHP_SELF'], '/');
+        }
 
-	private function __($key)
-	{
-		if (isset($this->lang[$key])) {
-			return $this->lang[$key];
-		} else {
-			return $key;
-		}
-	}
+        self::$media .= '/' . $this->config['skins'] . '/' . $this->config['skin'];
 
-	private function route()
-	{
-		$url = str_replace('/..', '', isset($_GET['url']) ? $_GET['url'] : '');
-		$url = trim($url, '/');
-		if (empty($url)) {
-			$url = 'list';
-		}
+        $this->set('siteName', $config['siteName']);
+        $this->route();
+    }
 
-		$url = explode('/', $url);
-		$allowed = array('view', 'preview', 'list', 'random');
 
-		if (in_array($url[0], $allowed)) {
-			$this->action = array_shift($url);
-		}
+    /**
+     * Vrati vystup galerie
+     * @return  string
+     */
+    public function render()
+    {
+        switch ($this->action) {
+        case 'view':
+            $this->scan();
+            return $this->view();
+        case 'list':
+            $this->scan();
+            return $this->listDir();
+        case 'error':
+            return $this->error("Špatný tvar url");
+        case 'preview':
+            $this->preview();
+        }
+    }
 
-		$withName = array('view', 'preview');
-		if (in_array($this->action, $withName)) {
-			$this->name = array_pop($url);
-		}
 
-		$this->path = $url;
-	}
+    /**
+     * Prelozi klic
+     * @param   string  klic
+     * @return  string
+     */
+    private function __($key)
+    {
+        if (isset($this->lang[$key])) {
+            return $this->lang[$key];
+        } else {
+            return $key;
+        }
+    }
 
-	private function scan()
-	{
-		$path = implode('/', $this->path);
-		$scanPath = $this->photoDir . '/' . $path;
-		if (!file_exists($scanPath)) {
-			$this->dirItems = false;
-			return;
-		}
 
-		$folder = new DirectoryIterator($scanPath);
-		$photos = array();
-		$dirs = array();
-		foreach ($folder as $file) {
-			$fileName = $file->getFileName();
+    /**
+     * Provede routing
+     * @return  void
+     */
+    private function route()
+    {
+        $url = trim(str_replace('/..', '', !empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : 'list'), '/');
+        $url = explode('/', $url);
 
-			if ($fileName === '.' || ($fileName === '..' && !$this->config['main']['show_dirup'])
-								  || ($fileName === '..' && empty($path))) {
-					continue;
-			}
 
-			if ($file->isDir()) {
-				if ($fileName == '..') {
-					$dPath = $this->path;
-					array_pop($dPath);
-					$dPath = implode('/', $dPath);
+        if (in_array($url[0], array('view', 'preview', 'list')))
+            $this->action = array_shift($url);
+        else
+            $this->action = 'error';
 
-					$dirs[] = array(
-						'type' => 'dir',
-						'name' => $this->__('Nahoru [..]'),
-						'path' => '/' . $this->getBase() . 'list/' . trim($dPath, '/')
-					);
-				} else {
-					$dirs[] = array(
-						'type' => 'dir',
-						'name' => $fileName,
-						'path' => '/' . $this->getBase() . 'list/' . trim($path . '/' . $fileName, '/')
-					);
-				}
-			} elseif(preg_match("/.jpe?g$/", strtolower($fileName))) {
-				$photos[] = array(
-					'type' => 'photo',
-					'name' => $fileName,
-					'path' => '/' . $this->getBase() . 'view/' . trim($path . '/' . $fileName, '/'),
-					'thumb' => '/' . $this->getBase() . 'preview/' . trim($path . '/' . $fileName, '/'),
-				);
-			}
-		}
+        if (in_array($this->action, array('view', 'preview')))
+            $this->name = array_pop($url);
 
-		$this->dirItems = array_merge($dirs, $photos);
-		foreach ($this->dirItems as $i => $item) {
-			if ($this->name == $item['name']) {
-				$this->photoNum = $i;
-				break;
-			}
-		}
-	}
+        $this->path = $url;
+    }
 
-	private function listDir()
-	{
-		$this->setTree();
-		if ($this->dirItems !== false) {
-			$this->set('exists', true);
-			$this->set('photos', $this->dirItems);
-		} else {
-			$this->set('exists', false);
-		}
 
-		return $this->renderTemplate('list');
-	}
+    /**
+     * Proslenuje adresar
+     */
+    private function scan()
+    {
+        $path = implode('/', $this->path);
+        $scan = $this->factory('scan', $path);
 
-	private function view()
-	{
-		$this->setTree();
-		$path = $this->config['path']['photos'] . '/' . implode('/', $this->path) . '/' . $this->name;
+        if (!file_exists($scan)) {
+            $this->items = false;
+            return;
+        }
 
-		if (file_exists(dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $path)) {
-			$this->set('exists', true);
-			$base = trim(dirname($_SERVER['PHP_SELF']), '/');
-			if (!empty($base)) {
-				$base .= '/';
-			}
-			$this->set('photoUrl', '/' . $base . $path);
 
-			$commentPath = $this->config['path']['photos'] . '/' . implode('/', $this->path) . '/comments.txt';
-			if (file_exists(dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $commentPath)) {
-				$this->set('label', $this->readComment($commentPath, $this->name));
-			}
+        $dirs   = array();
+        $photos = array();
+        $folder = new DirectoryIterator($scan);
 
-			$this->set('next', $this->getPhoto($this->photoNum, +1));
-			$this->set('prev', $this->getPhoto($this->photoNum, -1));
-		} else {
-			$this->set('exists', false);
-		}
+        foreach ($folder as $file) {
+            $name = $file->getFileName();
 
-		return $this->renderTemplate('view');
-	}
+            if ($name == '.' || ($name === '..' && (empty($this->path) || !$this->config['dirup'])))
+                continue;
 
-	private function getPhoto($i, $direction)
-	{
-		if (!isset($this->dirItems[$i + $direction])) {
-			return false;
-		}
 
-		if ($this->dirItems[$i + $direction]['type'] == 'dir') {
-			return $this->getPhoto($i + $direction, $direction);
-		}
+            if ($file->isDir()) {
+                if ($name == '..') {
+                    $upPath = $this->path;
+                    array_pop($upPath);
+                    $upPath = implode('/', $upPath);
 
-		return $this->dirItems[$i + $direction];
-	}
+                    $dirs[] = array(
+                        'type' => 'dir',
+                        'name' => $this->__('Nahoru [..]'),
+                        'path' => self::$base . "?list/$upPath"
+                    );
+                } else {
+                    $path   = implode('/', $this->path);
+                    $dirs[] = array(
+                        'type' => 'dir',
+                        'name' => $name,
+                        'path' => $this->factory('dir', "$path/$name")
+                    );
+                }
+            } elseif (preg_match("#\.jpe?g$#i", $name)) {
+                $photos[] = array(
+                    'type' => 'photo',
+                    'name' => $name,
+                    'path' => $this->factory('image', "$path/$name"),
+                    'thumb' => $this->factory('thumb', "$path/$name"),
+                );
+            }
+        }
 
-	private function setTree()
-	{
-		$dirTree = array(
-			array(
-				'name' => $this->__('Kořenový adresář'),
-				'path' => '/' . $this->getBase() . 'list/',
-			)
-		);
 
-		$cache = 'list/';
-		foreach ($this->path as $dir) {
-			$cache .= $dir . '/';
-			$dirTree[] = array(
-				'name' => $dir,
-				'path' => '/' . $this->getBase() . $cache,
-			);
-		}
-		$this->set('dirTree', $dirTree);
-	}
+        $this->items = array_merge($dirs, $photos);
 
-	private function preview()
-	{
-		header('Content-type: image/jpeg');
+        foreach ($this->items as $i => $item) {
+            if ($this->name == $item['name']) {
+                $this->num = $i;
+                break;
+            }
+        }
+    }
 
-		$thumb_path = $this->config['path']['thumbs'] . '/' . md5(implode('/', $this->path) . '_' . $this->name) . '.jpeg';
-		if (!file_exists($thumb_path)) {
 
-			$img_path = $this->config['path']['photos'] . '/' . implode('/', $this->path) . '/' . $this->name;
-			$thumbnail = exif_thumbnail($img_path);
+    /**
+     * Vygenruej view sablonu seznamu
+     * @return  string
+     */
+    private function listDir()
+    {
+        $this->setTree();
 
-			if ($thumbnail == false) {
-				if (class_exists('Imagick')) {
-					$im = new Imagick($img_path);
+        if ($this->items !== false)
+            $this->set('photos', $this->items);
+        else
+            return $this->error("Požadovaný adresář neexistuje!");
 
-					$thumb = $im->clone();
-					$thumb->thumbnailImage(160, 120, true);
-					$thumb->writeImage($thumb_path);
-				} else {
-					$old = imagecreatefromjpeg($img_path);
-					$old_x = imagesx($old);
-					$old_y = imagesy($old);
-					if ($old_y > $old_x) {
-						$k = $old_y / 120;
-						$new_y = 120;
-						$new_x = floor($old_x / $k);
-					} else {
-						$k = $old_x / 160;
-						$new_x = 160;
-						$new_y = floor($old_y / $k);
-					}
-					$nahled = imagecreatetruecolor($new_x, $new_y);
+        return $this->renderTemplate('list');
+    }
 
-					imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
-					imagejpeg($nahled, $thumb_path);
-					imagedestroy($nahled);
-				}
-				readfile($thumb_path);
-				exit;
-			}else{
-				file_put_contents($thumb_path, $thumbnail);
-				echo $thumbnail;
-				exit;
-			}
-		} else {
-			readfile($thumb_path);
-			exit;
-		}
-	}
+    
+    /**
+     * Vygenruje view sablonu fotky
+     * @return  string
+     */
+    private function view()
+    {
+        $this->setTree();
 
-	private function readComment($path, $name)
-	{
-		$file = file($path);
-		foreach ($file as $line => $data) {
-			$tab = strpos($data, "\t");
-			$rowName = substr($data, 0, $tab);
-			if ($rowName == $name) {
-				return substr($data, $tab);
-			}
-		}
-		return '';
-	}
+        $image = $this->factory('server-image');
 
-	private function set($var, $val)
-	{
-		$this->vars[$var] = $val;
-	}
+        if (file_exists($image)) {
+            $this->set('photoUrl', $this->factory('image-view'));
 
-	private function renderTemplate($name)
-	{
-		extract($this->vars);
-		require $this->skinsDir . '/' . $name . '.phtml';
-		return ob_get_clean();
-	}
+            $comment = $this->factory('comment');
+            if (file_exists($comment))
+                $data = $this->readData($comment);
+            else
+                $data = array();
+
+            $this->set('data', $data);
+            if (isset($data[$this->name]))
+                $this->set('label', $data[$this->name]);
+
+            $this->set('next', $this->getPhoto($this->num, +1));
+            $this->set('prev', $this->getPhoto($this->num, -1));
+        } else {
+            return $this->error('Požadovaná fotografie neexistuje!');
+        }
+
+        return $this->renderTemplate('view');
+    }
+
+
+
+    /**
+     * Vyrenderuje chybonu sablonu
+     * @param    string    chybova zprava
+     * @return    string
+     */
+    private function error($message)
+    {
+        header('HTTP/1.1 404 Not Found');
+
+        $this->set('message', $this->__($message));
+        return $this->renderTemplate('error');
+    }
+
+
+
+    /**
+     * Vrati prechozi/nasledujici fotku
+     * @param   int     cislo aktualni fotky
+     * @param   int     smer postupu hledani
+     * @return  mixed
+     */
+    private function getPhoto($i, $direction)
+    {
+        if (!isset($this->items[$i + $direction]))
+            return false;
+
+        if ($this->items[$i + $direction]['type'] == 'dir')
+            return $this->getPhoto($i + $direction, $direction);
+
+        return $this->items[$i + $direction];
+    }
+
+
+    /**
+     * Ulozi pole s stromovou cestou
+     * @return  void
+     */
+    private function setTree()
+    {
+        $dirTree = array(array(
+            'name' => $this->__('Kořenový adresář'),
+            'path' => $this->factory('dir', '')
+        ));
+
+        $path = '';
+        foreach ($this->path as $dir) {
+            $path .= "$dir/";
+            $dirTree[] = array(
+                'name' => $dir,
+                'path' => $this->factory('dir', $path)
+            );
+        }
+
+        $this->set('dirTree', $dirTree);
+    }
+
+
+    /**
+     * Vypise na vystup nahled fotky
+     * @return  void
+     */
+    private function preview()
+    {
+        header('Content-type: image/jpeg');
+
+        $path = implode('/', $this->path);
+        $thumb = $this->factory('server-thumb');
+
+        if (!file_exists($thumb)) {
+            $img = $this->factory('server-image');
+
+            $thumbnail = exif_thumbnail($img);
+
+            if ($thumbnail == false) {
+                if (class_exists('Imagick')) {
+                    $im = new Imagick($img);
+                    $thumbnail = $im->clone();
+                    $thumbnail->thumbnailImage(160, 120, true);
+                    $thumbnail->writeImage($thumb);
+
+                } else {
+
+                    $old = imagecreatefromjpeg($img);
+                    $old_x = imagesx($old);
+                    $old_y = imagesy($old);
+                    if ($old_y > $old_x) {
+                        $k = $old_y / 120;
+                        $new_y = 120;
+                        $new_x = floor($old_x / $k);
+                    } else {
+                        $k = $old_x / 160;
+                        $new_x = 160;
+                        $new_y = floor($old_y / $k);
+                    }
+
+                    $nahled = imagecreatetruecolor($new_x, $new_y);
+                    imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
+                    imagejpeg($nahled, $thumb);
+                    imagedestroy($nahled);
+
+                }
+                readfile($thumb);
+            } else {
+                file_put_contents($thumb, $thumbnail);
+                echo $thumbnail;
+            }
+        } else {
+            readfile($thumb);
+        }
+        exit;
+    }
+
+
+    /**
+     * Preparsuje yaml soubor (jen primitivni syntaxe!)
+     * @param   string  cesta k souboru
+     * @return  array
+     */
+    public static function readData($file)
+    {
+        $array = array();
+        $data = file($file);
+
+        foreach ($data as $line) {
+            if (preg_match('#^(.+)(?::\s|\t)(.+)$#', $line, $match)) {
+                $array[$match[1]] = $match[2];
+            }
+        }
+
+        return $array;
+    }
+
+
+
+    /**
+     * Ulozi promennou do sablony
+     * @param   string  jmeno promenne
+     * @param   mixed   hodnota
+     * @return  void
+     */
+    private function set($var, $val)
+    {
+        $this->vars[$var] = $val;
+    }
+
+
+    /**
+     * Vyrenderuje sablonu
+     * @param   string  jmeno sablony
+     * @return  string
+     */
+    private function renderTemplate($name)
+    {
+        extract($this->vars);
+        $template = $this->factory('template', $name);
+
+        if (file_exists($template))
+            require $template;
+        else
+            echo "Chybi sablona $template!";
+
+        return ob_get_clean();
+    }
+
+
+    /**
+     * Vytvori url
+     * @param   string  type url
+     * @param   string  url
+     * @return  string
+     */
+    private function factory($type, $url = null)
+    {
+        switch ($type) {
+        case 'scan':
+            $url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['photos'] . "/$url";
+        break;
+        case 'dir':
+            $url = self::$base . "?list/$url";
+        break;
+        case 'image':
+            $url = self::$base . "?view/$url";
+        break;
+        case 'image-view':
+            $url = self::$root . '/' . $this->config['photos'] . '/' . implode('/', $this->path) . '/' . $this->name;
+        break;
+        case 'thumb':
+            $url = self::$base . "?preview/$url";
+        break;
+        case 'template':
+            $url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['skins'] . '/' . $this->config['skin'] . "/$url.phtml";
+        break;
+        case 'server-thumb':
+            $url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['thumbs'] . '/' . md5(implode('/', $this->path) . '/' . $this->name) . '.jpeg';
+        break;
+        case 'server-image':
+            $url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['photos'] . '/' . implode('/', $this->path) . '/' . $this->name;
+        break;
+        case 'comment':
+            $url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['photos'] . '/' . implode('/', $this->path) . '/comments.txt';
+        break;
+        }
+        
+        return preg_replace('#\/+#', '/', $url);
+    }
+
 
 }

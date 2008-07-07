@@ -1,9 +1,13 @@
+<?
+	$title = '';
+	if (isset($dirTree)) foreach ($dirTree as $node) $title .= "$node[name] » ";
+?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
 	<link rel="stylesheet" href="<?= phob::$media ?>/style.css" type="text/css" media="screen" />
-	<title><?= $siteName ?> :: <?= $dirTree[count($dirTree) - 1]['name'] ?></title>
+	<title><?= $siteName ?> :: <?= $title ?></title>
 </head>
 <body>
 <div id="page">
@@ -11,32 +15,17 @@
 		<h1><a href="<?= phob::$base ?>"><?= $siteName ?></a></h1>
 
 		<div id="navigation">
-		<? foreach ($dirTree as $item) { ?>
+		<? if (isset($dirTree)) foreach ($dirTree as $item) { ?>
 			<a href="<?= $item['path'] ?>"><?= $item['name'] ?></a> »
 		<?php } ?>
 		</div>
 	</div>
 
 	<div id="main">
-		<? if ($prev !== false) { ?>
-		<a class="thumb left" href="<?= $prev['path'] ?>"><span>Předchozí</span>
-			<img src="<?= $prev['thumb'] ?>"/>
-		</a>
-		<? } ?>
-
-		<? if ($next !== false) { ?>
-		<a class="thumb right" href="<?= $next['path'] ?>"><span>Následující</span>
-			<img src="<?= $next['thumb'] ?>"/>
-		</a>
-		<? } ?>
-
-
-		<a href="<?= $photoUrl ?>" id="photo">
-			<img src="<?= $photoUrl ?>"/>
-		</a>
-		<?= !empty($label) ? "<div>$label</div>" : ''; ?>
+		<h1><?= $message ?></h1>
+		<br />
 	</div>
-	<br style="clear: left" /><br />
+
 	</div>
 </div>
 </body>
