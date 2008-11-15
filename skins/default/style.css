@@ -71,7 +71,7 @@ a.item.photo:hover span {
 }
 
 table {
-	width: 100%;
+	margin: 0 auto;
 	text-align: center;
 }
 
@@ -95,7 +95,8 @@ td.thumb.right {
 }
 
 td.thumb a img {
-	max-height: 80px;
+	max-width: 100px;
+	max-height: 100px;
 }
 
 td.photo img {

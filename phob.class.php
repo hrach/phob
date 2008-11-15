@@ -68,7 +68,7 @@ class Phob
 			$this->scan();
 			return $this->listDir();
 		case 'error':
-			return $this->error('Wrong url');
+			return $this->error();
 		case 'preview':
 			$this->preview();
 		}
@@ -187,7 +187,7 @@ class Phob
 		if ($this->items !== false)
 			$this->set('photos', $this->items);
 		else
-			return $this->error("This directory doesn't exists.");
+			return $this->error();
 
 		return $this->renderTemplate('list');
 	}
@@ -204,7 +204,7 @@ class Phob
 		$image = $this->factory('server-image');
 
 		if (!file_exists($image))
-			return $this->error('Požadovaná fotografie neexistuje!');
+			return $this->error();
 
 		$this->set('photoUrl', $this->factory('image-view'));
 
@@ -225,16 +225,13 @@ class Phob
 
 
 	/**
-	 * Renders error template
-	 * @param   string     error message
+	 * Sends redirect header
 	 * @return  string
 	 */
-	private function error($message)
+	private function error()
 	{
-		header('HTTP/1.1 404 Not Found');
-
-		$this->set('message', $this->__($message));
-		return $this->renderTemplate('error');
+		header('Location: ' . self::$root);
+		exit;
 	}
 
 
