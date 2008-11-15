@@ -1,5 +1,5 @@
 body {
-	background: white url('bg.png') repeat-x;
+	background: #e6f1ff url('bg.png') repeat-x;
 	font-family: Calibri, sans-serif;
 	padding: 0;
 	margin: 0;
@@ -7,41 +7,34 @@ body {
 }
 
 #page {
-	border: 1px solid #EAEAEA;
-	border-top: none;
 	margin: 20px auto;
 	padding: 10px 20px;
 	width: 900px;
 	text-align: left;
 }
 
-h1, h2, h3 {
+h1 {
 	margin: 0;
 	padding: 0;
 }
 
 a {
-	color: #516d05;
+	color: #3A3A3A;
 	text-decoration: none;
 }
 
 a img {
-	border: 5px solid #3A3A3A;
-}
-
-#main a {
-	color: #3A3A3A;
-	text-align: center;
+	border: 5px solid #5A5A5A;
 }
 
 #navigation {
-	margin: 10px 0 25px 0;
-	padding: 0 0 15px 0;
-	border-bottom: 1px solid #EAEAEA;
+	margin: 10px 0 45px 0;
+	padding: 0 0 10px 0;
+	border-bottom: 2px solid #999;
 }
 
 #navigation a {
-	color: #c39a0e;
+	color: #344150;
 }
 
 a.item {
@@ -65,42 +58,47 @@ a.item.photo img {
 	max-width: 130px;
 }
 
-a.thumb {
-	width: auto;
+a.item.photo:hover img{
+	border-color: #3a3a3a;
 }
 
-a.thumb.left {
-	float: left;
+a.item.photo span {
+	visibility: hidden;
 }
 
-a.thumb.right {
-	direction: rtl;
-	float: right;
+a.item.photo:hover span {
+	visibility: visible;
 }
 
-a.thumb span {
-	position: absolute;
+table {
+	width: 100%;
+	text-align: center;
 }
 
-a.thumb img {
-	margin-top: 18px;
+td.thumb {
+	vertical-align: top;
+	min-width: 120px;
+}
+
+td.thumb a span {
+	display: block;
+}
+
+td.thumb.left {
+	text-align: right;
+	padding-right: 10px;
+}
+
+td.thumb.right {
+	text-align: left;
+	padding-left: 10px;
+}
+
+td.thumb a img {
 	max-height: 80px;
-	display: block;
-	position: absolute;
-	opacity: 0.5;
 }
 
-a.thumb:hover img {
-	opacity: 1;
-}
-
-
-a#photo {
-	display: block;
-	margin: 0 auto;
-}
-
-a#photo img {
-	margin-top: 18px;
-	max-width: 890px;
+td.photo img {
+	max-width: 620px;
+	max-height: 600px;
 }

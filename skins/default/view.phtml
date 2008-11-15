@@ -18,23 +18,32 @@
 	</div>
 
 	<div id="main">
-		<? if ($prev !== false) { ?>
-		<a class="thumb left" href="<?= $prev['path'] ?>"><span>Předchozí</span>
-			<img src="<?= $prev['thumb'] ?>"/>
-		</a>
-		<? } ?>
+		<table>
+		<tr>
+			<td class="thumb left">
+			<? if ($prev !== false) { ?>
+			<a href="<?= $prev['path'] ?>"><span>Předchozí</span>
+				<img src="<?= $prev['thumb'] ?>"/>
+			</a>
+			<? } ?>
+			</td>
 
-		<? if ($next !== false) { ?>
-		<a class="thumb right" href="<?= $next['path'] ?>"><span>Následující</span>
-			<img src="<?= $next['thumb'] ?>"/>
-		</a>
-		<? } ?>
+			<td class="photo">
+				<?= !empty($label) ? "<div class='label'>$label</div>" : ''; ?>
+				<a href="<?= $photoUrl ?>">
+					<img src="<?= $photoUrl ?>"/>
+				</a>
+			</td>
 
-
-		<a href="<?= $photoUrl ?>" id="photo">
-			<img src="<?= $photoUrl ?>"/>
-		</a>
-		<?= !empty($label) ? "<div>$label</div>" : ''; ?>
+			<td class="thumb right">
+			<? if ($next !== false) { ?>
+			<a href="<?= $next['path'] ?>"><span>Následující</span>
+				<img src="<?= $next['thumb'] ?>"/>
+			</a>
+			<? } ?>
+			</td>
+		</tr>
+		</table>
 	</div>
 	<br style="clear: left" /><br />
 	</div>
