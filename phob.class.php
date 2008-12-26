@@ -5,7 +5,7 @@
  *
  * @author      Jan Skrasek <skrasek.jan@gmail.com>
  * @copyright   Copyright (c) 2008, Jan Skrasek
- * @version     0.6
+ * @version     0.6.5
  * @link        http://phob.skrasek.com
  * @package     Phob
  */
@@ -15,157 +15,147 @@ class Phob
 {
 
 
-	private static $root;
-	private static $base;
-	private static $media;
-
-
+	/** @var array */
 	public $lang = array();
 
-	private $action;
-	private $path = array();
-	private $name;
-	private $config = array();
-	private $items = array();
-	private $vars = array();
+	/** @var string */
+	public $skins;
+
+	/** @var string */
+	public $photos;
+
+	/** @var string */
+	public $thumbs;
+
+	/** @var array */
+	public $config = array(
+		'siteName' => 'PhotoBrowser',
+		'siteSkin' => 'default',
+		'showDirup' => true
+	);
+
+	/** @var string */
+	protected $root;
+
+	/** @var array */
+	protected $router = array(
+		'action' => 'list',
+		'path' => '',
+		'name' => ''
+	);
+
+	/** @var array */
+	protected $items = array();
+
 
 
 	/**
 	 * Constructor
-	 * @param   array   configuration
 	 * @return  void
 	 */
-	public function __construct($config)
+	public function __construct()
 	{
-		$this->config = (array) $config;
-
-		if ($this->config['mod_rewrite']) {
-			self::$root = self::$media = self::$base = dirname($_SERVER['SCRIPT_NAME']);
-			self::$base .= '/';
-		} else {
-			self::$root = self::$media = '/' . dirname(trim($_SERVER['SCRIPT_NAME'], '/'));
-			self::$base = '/' . trim($_SERVER['SCRIPT_NAME'], '/') . '/';
-		}
-
-		self::$media .= '/' . $this->config['skins'] . '/' . $this->config['skin'];
-
-		$this->set('siteName', $config['siteName']);
-		$this->route();
+		$root = trim(dirname($_SERVER['SCRIPT_NAME']), '/');
+		if (empty($root))
+			$this->root = '/';
+		else
+			$this->root = "/$root/";
 	}
 
 
 	/**
-	 * Returns gallery render
+	 * Returns gallery output
 	 * @return  string
 	 */
 	public function render()
 	{
-		switch ($this->action) {
-		case 'view':
-			$this->scan();
-			return $this->view();
-		case 'list':
-			$this->scan();
-			return $this->listDir();
-		case 'error':
-			return $this->error();
-		case 'preview':
+		$this->photos = trim($this->photos, '/');
+		$action = $this->route();
+		if ($action == 'preview') {
 			$this->preview();
+		} else {
+			$this->scan();
+			if ($action == 'list')
+				return $this->index();
+			else
+				return $this->view();
 		}
 	}
 
 
 	/**
-	 * Translate key
-	 * @param   string  key
-	 * @return  string
-	 */
-	private function __($key)
-	{
-		if (!empty($this->lang[$key]))
-			return $this->lang[$key];
-		else
-			return $key;
-	}
-
-
-	/**
-	 * Routing
-	 * @return  void
+	 * Routes applicaiton
+	 * @return  string    action
 	 */
 	private function route()
 	{
 		$url = (!empty($_SERVER['PATH_INFO']) && $_SERVER['PATH_INFO'] != '/') ? $_SERVER['PATH_INFO'] : 'list';
-		$url = urldecode(trim(str_replace('/..', '', $url), '/'));
-		$url = explode('/', $url);
+		$url = explode('/', trim($url, '/'));
+		foreach ($url as & $u)
+			$u = urldecode($u);
 
 		if (in_array($url[0], array('view', 'preview', 'list')))
-			$this->action = array_shift($url);
+			$this->router['action'] = array_shift($url);
 		else
-			$this->action = 'error';
+			return $this->error('Directory doesn\'t exists.');
 
-		if (in_array($this->action, array('view', 'preview')))
-			$this->name = array_pop($url);
+		if (in_array($this->router['action'], array('view', 'preview')))
+			$this->router['name'] = array_pop($url);
 
-		$this->path = $url;
+		$this->router['path'] = $url;
+		$this->router['path_full'] = implode('/', $url);
+		return $this->router['action'];
 	}
 
 
 	/**
-	 * Scan direcotry
+	 * Scans direcotry
 	 * @return  void
 	 */
 	private function scan()
 	{
-		$path = implode('/', $this->path);
-		$scan = $this->factory('scan', $path);
-
-		if (!file_exists($scan)) {
-			$this->items = false;
-			return;
-		}
-
-
+		$scan = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router[path_full]}";
+		if (!is_dir($scan))
+			return $this->items = false;
 
 		$dirs = array();
 		$photos = array();
 		$folder = new DirectoryIterator($scan);
 
 		$alias = array();
-		if ($this->action == 'list' && is_file($scan . 'alias.txt'))
+		if ($this->router['action'] == 'list' && is_file($scan . 'alias.txt'))
 			$alias = $this->readData($scan . 'alias.txt');
 
 		foreach ($folder as $file) {
 			$name = $file->getFileName();
 
-			if ($name == '.' || ($name === '..' && (empty($this->path) || !$this->config['dirup'])))
+			if ($name == '.' || ($name === '..' && (empty($this->router['path']) || !$this->config['showDirup'])))
 				continue;
 
 			if ($file->isDir()) {
 				if ($name == '..') {
-					$upPath = $this->path;
+					$upPath = $this->router['path'];
 					array_pop($upPath);
 					$upPath = implode('/', $upPath);
 
 					$dirs[$name] = array(
 						'type' => 'dir',
 						'name' => $this->__('Nahoru [..]'),
-						'path' => self::$base . "?list/$upPath"
+						'path' => "{$this->root}list/$upPath"
 					);
 				} else {
-					$path   = implode('/', $this->path);
 					$dirs[$name] = array(
 						'type' => 'dir',
 						'name' => !empty($alias[$name]) ? $alias[$name] : $name,
-						'path' => $this->factory('dir', "$path/$name")
+						'path' => "{$this->root}list/" . trim("{$this->router[path_full]}/$name", '/')
 					);
 				}
 			} elseif (preg_match("#\.jpe?g$#i", $name)) {
 				$photos[$name] = array(
 					'type' => 'photo',
 					'name' => $name,
-					'path' => $this->factory('image', "$path/$name"),
-					'thumb' => $this->factory('thumb', "$path/$name"),
+					'path' => "{$this->root}view/" . trim("{$this->router[path_full]}/$name", '/'),
+					'thumb' => "{$this->root}preview/" . trim("{$this->router[path_full]}/$name", '/')
 				);
 			}
 		}
@@ -180,15 +170,14 @@ class Phob
 	 * Renders list template
 	 * @return  string
 	 */
-	private function listDir()
+	private function index()
 	{
 		$this->setTree();
 
 		if ($this->items !== false)
 			$this->set('photos', $this->items);
 		else
-			return $this->error();
-
+			return $this->error('Directory doesn\'t exists.');
 		return $this->renderTemplate('list');
 	}
 
@@ -201,22 +190,22 @@ class Phob
 	{
 		$this->setTree();
 
-		$image = $this->factory('server-image');
-
+		$image = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router[path_full]}/{$this->router[name]}";
 		if (!file_exists($image))
-			return $this->error();
+			return $this->error('Photo doesn\'t exists.');
 
-		$this->set('photoUrl', $this->factory('image-view'));
+		$photoUrl = "{$this->root}{$this->photos}/" . trim("{$this->router[path_full]}/{$this->router[name]}", '/');
+		$this->set('photoUrl', $photoUrl);
 
-		$comment = $this->factory('comment');
+		$comment = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router[path_full]}/comments.txt";
 		if (file_exists($comment))
 			$data = $this->readData($comment);
 		else
 			$data = array();
 
 		$this->set('data', $data);
-		if (isset($data[$this->name]))
-			$this->set('label', $data[$this->name]);
+		if (isset($data[$this->router['name']]))
+			$this->set('label', $data[$this->router['name']]);
 
 		$this->set('next', $this->getPhoto());
 		$this->set('prev', $this->getPhoto(false));
@@ -228,9 +217,10 @@ class Phob
 	 * Sends redirect header
 	 * @return  string
 	 */
-	private function error()
+	private function error($var)
 	{
-		header('Location: ' . self::$root);
+		header('HTTP/1.1 404 Not Found');
+		die("<h1>Error: Page wasn't found</h1>$var");
 		exit;
 	}
 
@@ -244,7 +234,7 @@ class Phob
 	{
 		$item = null;
 		reset($this->items);
-		while ($this->name != key($this->items))
+		while ($this->router['name'] != key($this->items))
 			next($this->items);
 
 		if ($next) {
@@ -272,15 +262,15 @@ class Phob
 	{
 		$dirTree = array(array(
 			'name' => $this->__('Kořenový adresář'),
-			'path' => $this->factory('dir', '')
+			'path' => "{$this->root}list"
 		));
 
 		$path = '';
-		foreach ($this->path as $dir) {
+		foreach ($this->router['path'] as $dir) {
 			$path .= "$dir/";
 			$dirTree[] = array(
 				'name' => $dir,
-				'path' => $this->factory('dir', $path)
+				'path' => "{$this->root}list/$path"
 			);
 		}
 
@@ -294,53 +284,59 @@ class Phob
 	 */
 	private function preview()
 	{
-		header('Content-type: image/jpeg');
 
-		$path = implode('/', $this->path);
-		$thumb = $this->factory('server-thumb');
-
-		if (!file_exists($thumb)) {
-			$img = $this->factory('server-image');
-
-			$thumbnail = exif_thumbnail($img);
-
-			if ($thumbnail == false) {
-				if (class_exists('Imagick')) {
-					$im = new Imagick($img);
-					$thumbnail = $im->clone();
-					$thumbnail->thumbnailImage(160, 120, true);
-					$thumbnail->writeImage($thumb);
-
-				} else {
-
-					$old = imagecreatefromjpeg($img);
-					$old_x = imagesx($old);
-					$old_y = imagesy($old);
-					if ($old_y > $old_x) {
-						$k = $old_y / 120;
-						$new_y = 120;
-						$new_x = floor($old_x / $k);
-					} else {
-						$k = $old_x / 160;
-						$new_x = 160;
-						$new_y = floor($old_y / $k);
-					}
-
-					$nahled = imagecreatetruecolor($new_x, $new_y);
-					imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
-					imagejpeg($nahled, $thumb);
-					imagedestroy($nahled);
-
-				}
-				readfile($thumb);
-			} else {
-				file_put_contents($thumb, $thumbnail);
-				echo $thumbnail;
-			}
-		} else {
+		$thumb = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->thumbs}/" . md5($this->router['path_full'] . $this->router['name']) . ".jpeg";
+		if (file_exists($thumb)) {
+			header('Content-type: image/jpeg');
 			readfile($thumb);
+			exit;
 		}
-		exit;
+
+
+		$img = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router[path_full]}/{$this->router[name]}";
+		if (!file_exists($img))
+			die($this->__('Fotografie neexistuje!'));
+
+		$thumbnail = false;
+		if (function_exists('exif_thumbnail')) {
+			header('Content-type: image/jpeg');
+			$thumbnail = exif_thumbnail($img);
+			file_put_contents($thumb, $thumbnail);
+			echo $thumbnail;
+			exit;
+		}
+
+		if ($thumbnail === false) {
+			if (class_exists('Imagick')) {
+				$im = new Imagick($img);
+				$thumbnail = $im->clone();
+				$thumbnail->thumbnailImage(160, 120, true);
+				$thumbnail->writeImage($thumb);
+			} elseif (function_exists('imagecreatefromjpeg')) {
+				$old = imagecreatefromjpeg($img);
+				$old_x = imagesx($old);
+				$old_y = imagesy($old);
+				if ($old_y > $old_x) {
+					$k = $old_y / 120;
+					$new_y = 120;
+					$new_x = floor($old_x / $k);
+				} else {
+					$k = $old_x / 160;
+					$new_x = 160;
+					$new_y = floor($old_y / $k);
+				}
+
+				$nahled = imagecreatetruecolor($new_x, $new_y);
+				imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
+				imagejpeg($nahled, $thumb);
+				imagedestroy($nahled);
+			} else {
+				die('Neni k dispozici zadna funkce pro generovani nahledu. (GD, Imagick, Exif)');
+			}
+			header('Content-type: image/jpeg');
+			readfile($thumb);
+			exit;
+		}
 	}
 
 
@@ -384,8 +380,10 @@ class Phob
 	 */
 	private function renderTemplate($name)
 	{
+		$this->set('siteName', $this->config['siteName']);
+		$this->set('css', "{$this->root}{$this->skins}/{$this->config[skinName]}/");
 		extract($this->vars);
-		$template = $this->factory('template', $name);
+		$template = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->skins}/{$this->config[skinName]}/$name.phtml";
 
 		if (file_exists($template))
 			require $template;
@@ -397,45 +395,16 @@ class Phob
 
 
 	/**
-	 * Creates url/path
-	 * @param   string  type url
-	 * @param   string  url
+	 * Translate key
+	 * @param   string  key
 	 * @return  string
 	 */
-	private function factory($type, $url = null)
+	private function __($key)
 	{
-		switch ($type) {
-		case 'scan':
-			$url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['photos'] . "/$url";
-		break;
-		case 'dir':
-			$url = self::$base . "list/$url";
-		break;
-		case 'image':
-			$url = self::$base . "view/$url";
-		break;
-		case 'image-view':
-			$url = self::$root . '/' . $this->config['photos'] . '/' . implode('/', $this->path) . '/' . $this->name;
-		break;
-		case 'thumb':
-			$url = self::$base . "preview/$url";
-		break;
-		case 'template':
-			$url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['skins'] . '/' . $this->config['skin'] . "/$url.phtml";
-		break;
-		case 'server-thumb':
-			$url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['thumbs'] . '/' . md5(implode('/', $this->path) . '/' . $this->name) . '.jpeg';
-		break;
-		case 'server-image':
-			$url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['photos'] . '/' . implode('/', $this->path) . '/' . $this->name;
-		break;
-		case 'comment':
-			$url = dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $this->config['photos'] . '/' . implode('/', $this->path) . '/comments.txt';
-		break;
-		}
-
-		return preg_replace('#\/+#', '/', $url);
+		if (!empty($this->lang[$key]))
+			return $this->lang[$key];
+		else
+			return $key;
 	}
-
 
 }

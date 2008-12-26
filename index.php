@@ -5,15 +5,17 @@
  *
  * @author      Jan Skrasek <skrasek.jan@gmail.com>
  * @copyright   Copyright (c) 2008, Jan Skrasek
- * @version     0.6
+ * @version     0.6.5
  * @link        http://phob.skrasek.com
  */
 
 
 ob_start();
-$config['mod_rewrite']	= true;
-// pokud chcete provozovat pho na hostingu ic.cz, updavte soubor. htaccess nasledovne:
-// pridejte pred index.php lomitko a cestu z webrootu serveru
+require_once dirname(__FILE__) . '/phob.class.php';
+
+
+# pokud chcete provozovat pho na hostingu ic.cz, updavte soubor. htaccess nasledovne:
+# pridejte pred index.php lomitko a cestu z webrootu serveru
 /*
 RewriteEngine On
 
@@ -23,18 +25,15 @@ RewriteRule ^(.+)$ /cesta/k/phobu/index.php?url=$1 [L]
 */
 
 
+$phob = new Phob();
+$phob->skins = 'skins';
+$phob->photos = 'photos';
+$phob->thumbs = 'thumbs';
 
-$config['photos']     = 'photos';
-$config['thumbs']     = 'thumbs';
-$config['skins']      = 'skins';
+$phob->config = array(
+	'siteName' => 'PhotoBrowser',
+	'skinName' => 'default',
+	'showDirup' => true
+);
 
-$config['siteName']   = 'PhotoBrowser';
-$config['skin']       = 'default';
-$config['dirup']      = true;
-
-
-// =====[PHOB]=====
-
-require_once dirname(__FILE__) . '/phob.class.php';
-$phob = new PhoB($config);
 echo $phob->render();
