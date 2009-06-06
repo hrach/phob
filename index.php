@@ -3,13 +3,15 @@
 /**
  * PHOB - photo browser
  *
- * @author      Jan Skrasek <skrasek.jan@gmail.com>
- * @copyright   Copyright (c) 2008, Jan Skrasek
- * @version     0.6.5
+ * @author      Jan Skrasek <hrach.cz@gmail.com>
+ * @copyright   Copyright (c) 2008 - 2009, Jan Skrasek
+ * @version     0.6.7
  * @link        http://phob.skrasek.com
+ * @package     Phob
  */
 
 
+error_reporting(0);
 ob_start();
 require_once dirname(__FILE__) . '/phob.class.php';
 
@@ -35,5 +37,16 @@ $phob->config = array(
 	'skinName' => 'default',
 	'showDirup' => true
 );
+
+
+# moznost prekladu
+/*
+	$phob->lang = array(
+		'Nahoru [..]' => 'Up [..]',
+		'Kořenový adresář' => 'Root',
+		'Fotografie neexistuje' => 'Photo dosne\' exists.'
+	);
+*/
+
 
 echo $phob->render();

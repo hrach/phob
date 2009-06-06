@@ -3,9 +3,9 @@
 /**
  * PHOB - photo browser
  *
- * @author      Jan Skrasek <skrasek.jan@gmail.com>
- * @copyright   Copyright (c) 2008, Jan Skrasek
- * @version     0.6.5
+ * @author      Jan Skrasek <hrach.cz@gmail.com>
+ * @copyright   Copyright (c) 2008 - 2009, Jan Skrasek
+ * @version     0.6.7
  * @link        http://phob.skrasek.com
  * @package     Phob
  */
@@ -48,14 +48,13 @@ class Phob
 	protected $items = array();
 
 
-
 	/**
 	 * Constructor
 	 * @return  void
 	 */
 	public function __construct()
 	{
-		$root = trim(dirname($_SERVER['SCRIPT_NAME']), '/');
+		$root = trim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
 		if (empty($root))
 			$this->root = '/';
 		else
@@ -114,7 +113,7 @@ class Phob
 	 */
 	private function scan()
 	{
-		$scan = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router[path_full]}";
+		$scan = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router['path_full']}";
 		if (!is_dir($scan))
 			return $this->items = false;
 
@@ -147,15 +146,15 @@ class Phob
 					$dirs[$name] = array(
 						'type' => 'dir',
 						'name' => !empty($alias[$name]) ? $alias[$name] : $name,
-						'path' => "{$this->root}list/" . trim("{$this->router[path_full]}/$name", '/')
+						'path' => "{$this->root}list/" . trim("{$this->router['path_full']}/$name", '/')
 					);
 				}
 			} elseif (preg_match("#\.jpe?g$#i", $name)) {
 				$photos[$name] = array(
 					'type' => 'photo',
 					'name' => $name,
-					'path' => "{$this->root}view/" . trim("{$this->router[path_full]}/$name", '/'),
-					'thumb' => "{$this->root}preview/" . trim("{$this->router[path_full]}/$name", '/')
+					'path' => "{$this->root}view/" . trim("{$this->router['path_full']}/$name", '/'),
+					'thumb' => "{$this->root}preview/" . trim("{$this->router['path_full']}/$name", '/')
 				);
 			}
 		}
@@ -190,14 +189,14 @@ class Phob
 	{
 		$this->setTree();
 
-		$image = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router[path_full]}/{$this->router[name]}";
+		$image = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router['path_full']}/{$this->router['name']}";
 		if (!file_exists($image))
 			return $this->error('Photo doesn\'t exists.');
 
-		$photoUrl = "{$this->root}{$this->photos}/" . trim("{$this->router[path_full]}/{$this->router[name]}", '/');
+		$photoUrl = "{$this->root}{$this->photos}/" . trim("{$this->router['path_full']}/{$this->router['name']}", '/');
 		$this->set('photoUrl', $photoUrl);
 
-		$comment = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router[path_full]}/comments.txt";
+		$comment = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router['path_full']}/comments.txt";
 		if (file_exists($comment))
 			$data = $this->readData($comment);
 		else
@@ -293,50 +292,52 @@ class Phob
 		}
 
 
-		$img = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router[path_full]}/{$this->router[name]}";
+		$img = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router['path_full']}/{$this->router['name']}";
 		if (!file_exists($img))
 			die($this->__('Fotografie neexistuje!'));
 
 		$thumbnail = false;
 		if (function_exists('exif_thumbnail')) {
-			header('Content-type: image/jpeg');
 			$thumbnail = exif_thumbnail($img);
-			file_put_contents($thumb, $thumbnail);
-			echo $thumbnail;
-			exit;
-		}
-
-		if ($thumbnail === false) {
-			if (class_exists('Imagick')) {
-				$im = new Imagick($img);
-				$thumbnail = $im->clone();
-				$thumbnail->thumbnailImage(160, 120, true);
-				$thumbnail->writeImage($thumb);
-			} elseif (function_exists('imagecreatefromjpeg')) {
-				$old = imagecreatefromjpeg($img);
-				$old_x = imagesx($old);
-				$old_y = imagesy($old);
-				if ($old_y > $old_x) {
-					$k = $old_y / 120;
-					$new_y = 120;
-					$new_x = floor($old_x / $k);
-				} else {
-					$k = $old_x / 160;
-					$new_x = 160;
-					$new_y = floor($old_y / $k);
-				}
-
-				$nahled = imagecreatetruecolor($new_x, $new_y);
-				imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
-				imagejpeg($nahled, $thumb);
-				imagedestroy($nahled);
-			} else {
-				die('Neni k dispozici zadna funkce pro generovani nahledu. (GD, Imagick, Exif)');
+			if ($thumbnail !== false) {
+				file_put_contents($thumb, $thumbnail);
+				header('Content-type: image/jpeg');
+				echo $thumbnail;
+				exit;
 			}
-			header('Content-type: image/jpeg');
-			readfile($thumb);
-			exit;
 		}
+
+		if (class_exists('Imagick')) {
+			$im = new Imagick($img);
+			$thumbnail = $im->clone();
+			$thumbnail->thumbnailImage(160, 120, true);
+			$thumbnail->writeImage($thumb);
+		} elseif (function_exists('imagecreatefromjpeg')) {
+			$old = imagecreatefromjpeg($img);
+			$old_x = imagesx($old);
+			$old_y = imagesy($old);
+			if ($old_y > $old_x) {
+				$k = $old_y / 120;
+				$new_y = 120;
+				$new_x = floor($old_x / $k);
+			} else {
+				$k = $old_x / 160;
+				$new_x = 160;
+				$new_y = floor($old_y / $k);
+			}
+
+			$nahled = imagecreatetruecolor($new_x, $new_y);
+			imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
+			imagejpeg($nahled, $thumb);
+			
+			imagedestroy($nahled);
+		} else {
+			die('There is no required library for thumbnail generation. (GD, Imagick, Exif)');
+		}
+
+		header('Content-type: image/jpeg');
+		readfile($thumb);
+		exit;
 	}
 
 
@@ -360,7 +361,6 @@ class Phob
 	}
 
 
-
 	/**
 	 * Saves param for template
 	 * @param   string  var name
@@ -381,9 +381,9 @@ class Phob
 	private function renderTemplate($name)
 	{
 		$this->set('siteName', $this->config['siteName']);
-		$this->set('css', "{$this->root}{$this->skins}/{$this->config[skinName]}/");
+		$this->set('css', "{$this->root}{$this->skins}/{$this->config['skinName']}/");
 		extract($this->vars);
-		$template = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->skins}/{$this->config[skinName]}/$name.phtml";
+		$template = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->skins}/{$this->config['skinName']}/$name.phtml";
 
 		if (file_exists($template))
 			require $template;
@@ -406,5 +406,6 @@ class Phob
 		else
 			return $key;
 	}
+
 
 }
