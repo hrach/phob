@@ -43,6 +43,20 @@
 			<? } ?>
 			</td>
 		</tr>
+		<?php if (!empty($exif)) { ?>
+		<tr>
+			<td colspan="3">
+			<table class="exif">
+			<?php foreach ($exif as $key => $val) { ?>
+				<tr>
+					<th><?= $key ?></th>
+					<td><?= $val ?></td>
+				</tr>
+			<?php } ?>
+			</table>
+			</td>
+		</tr>
+		<?php } ?>
 		</table>
 	</div>
 	<br style="clear: left" /><br />

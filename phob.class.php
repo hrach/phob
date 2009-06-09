@@ -5,7 +5,7 @@
  *
  * @author      Jan Skrasek <hrach.cz@gmail.com>
  * @copyright   Copyright (c) 2008 - 2009, Jan Skrasek
- * @version     0.7 $Id$
+ * @version     0.8 $Id$
  * @link        http://phob.skrasek.com
  * @package     Phob
  */
@@ -14,6 +14,41 @@
 class Phob
 {
 
+
+	/**
+	* put your comment there...
+	* 
+	* @param mixed $value
+	* @return m
+	*/
+	public static function getExifExp($value)
+	{ 
+		$pos = strpos($value, '/'); 
+		if ($pos === false)
+			return (float) $value;
+
+		$a = (float) substr($value, 0, $pos); 
+		$b = (float) substr($value, $pos + 1); 
+		return ($a == 0) ? ($a) : ($b / $a); 
+	} 
+
+
+	/**
+	 * Returns float from exif string
+	 * @param   string   value
+	 * @return  float 
+	 */
+	public static function getExifFloat($value)
+	{
+		$pos = strpos($value, '/'); 
+		if ($pos === false)
+			return (float) $value; 
+
+		$a = (float) substr($value, 0, $pos); 
+		$b = (float) substr($value, $pos + 1); 
+		return ($b == 0) ? ($a) : ($a / $b); 
+	}
+ 
 
 	/** @var array */
 	public $lang = array();
@@ -31,7 +66,8 @@ class Phob
 	public $config = array(
 		'siteName' => 'PhotoBrowser',
 		'siteSkin' => 'default',
-		'showDirup' => true
+		'showDirup' => true,
+		'showExif' => true,
 	);
 
 	/** @var string */
@@ -139,7 +175,7 @@ class Phob
 
 					$dirs[$name] = array(
 						'type' => 'dir',
-						'name' => $this->__('Nahoru [..]'),
+						'name' => $this->__('dirup'),
 						'path' => "{$this->root}list/$upPath"
 					);
 				} else {
@@ -172,11 +208,11 @@ class Phob
 	private function index()
 	{
 		$this->setTree();
-
 		if ($this->items !== false)
 			$this->set('photos', $this->items);
 		else
 			return $this->error('Directory doesn\'t exists.');
+
 		return $this->renderTemplate('list');
 	}
 
@@ -196,6 +232,7 @@ class Phob
 		$photoUrl = "{$this->root}{$this->photos}/" . trim("{$this->router['path_full']}/{$this->router['name']}", '/');
 		$this->set('photoUrl', $photoUrl);
 
+		# label
 		$comment = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router['path_full']}/comments.txt";
 		if (file_exists($comment))
 			$data = $this->readData($comment);
@@ -205,6 +242,36 @@ class Phob
 		$this->set('data', $data);
 		if (isset($data[$this->router['name']]))
 			$this->set('label', $data[$this->router['name']]);
+
+		# exif
+		if (isset($this->config['showExif']) && $this->config['showExif'] && function_exists('exif_read_data')) {
+			$exif = array();
+			$data = exif_read_data($image);
+			if (!empty($data['Model'])) {
+				if (!empty($data['Manufacturer']))
+					$exif[$this->__('exif_Model')] = $data['Manufacturer'] . ' ' . $data['Model'];
+				else
+					$exif[$this->__('exif_Model')] = (!empty($data['Make']) ? $data['Make'] . ' ' : '') . $data['Model'];
+			}
+
+			if (!empty($data['ExposureTime']))
+				$exif[$this->__('exif_ExposureTime')] = '1/' . self::getExifExp($data['ExposureTime']) . ' s';
+
+			if (!empty($data['FNumber']))
+				$exif[$this->__('exif_FNumber')] = 'F ' . self::getExifFloat($data['FNumber']);
+
+			if (!empty($data['FocalLength']))
+				$exif[$this->__('exif_FocalLength')] = self::getExifFloat($data['FocalLength']) . ' mm';
+
+			if (!empty($data['ISOSpeedRatings']))
+				$exif[$this->__('exif_ISOSpeedRatings')] = $data['ISOSpeedRatings'] . ' ISO';
+
+			if (!empty($data['DateTime']))
+				$exif[$this->__('exif_DateTime')] = preg_replace('#(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})#', '$3.$2.$1 $4:$5:$6', $data['DateTime']);
+
+			$this->set('exif', $exif);
+		}
+
 
 		$this->set('next', $this->getPhoto());
 		$this->set('prev', $this->getPhoto(false));
@@ -260,7 +327,7 @@ class Phob
 	private function setTree()
 	{
 		$dirTree = array(array(
-			'name' => $this->__('Kořenový adresář'),
+			'name' => $this->__('root_dir'),
 			'path' => "{$this->root}list"
 		));
 
@@ -294,7 +361,7 @@ class Phob
 
 		$img = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router['path_full']}/{$this->router['name']}";
 		if (!file_exists($img))
-			die($this->__('Fotografie neexistuje!'));
+			die($this->__('no_photo'));
 
 		$thumbnail = false;
 		if (function_exists('exif_thumbnail')) {
