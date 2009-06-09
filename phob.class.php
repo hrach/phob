@@ -51,7 +51,18 @@ class Phob
  
 
 	/** @var array */
-	public $lang = array();
+	public $lang = array(
+		'dirup' => 'Nahoru [..]',
+		'root_dir' => 'Kořenový adresář',
+		'no_photo' => 'Fotografie neexistuje!',
+
+		'exif_Model' => 'Fotoaparát',
+		'exif_ExposureTime' => 'Expozice',
+		'exif_FNumber' => 'Clona',
+		'exif_ISOSpeedRatings' => 'Citlivost',
+		'exif_FocalLength' => 'Ohnisková vzdálenost',
+		'exif_DateTime' => 'Datum',
+	);
 
 	/** @var string */
 	public $skins;

@@ -39,18 +39,20 @@ $phob->config = array(
 	'showExif' => true
 );
 
-$phob->lang = array(
-	'dirup' => 'Nahoru [..]',
-	'root_dir' => 'Kořenový adresář',
-	'no_photo' => 'Fotografie neexistuje!',
+/* moznost prekladu
+	$phob->lang = array(
+		'dirup' => 'Nahoru [..]',
+		'root_dir' => 'Kořenový adresář',
+		'no_photo' => 'Fotografie neexistuje!',
 
-	'exif_Model' => 'Fotoaparát',
-	'exif_ExposureTime' => 'Expozice',
-	'exif_FNumber' => 'Clona',
-	'exif_ISOSpeedRatings' => 'Citlivost',
-	'exif_FocalLength' => 'Ohnisková vzdálenost',
-	'exif_DateTime' => 'Datum',
-);
+		'exif_Model' => 'Fotoaparát',
+		'exif_ExposureTime' => 'Expozice',
+		'exif_FNumber' => 'Clona',
+		'exif_ISOSpeedRatings' => 'Citlivost',
+		'exif_FocalLength' => 'Ohnisková vzdálenost',
+		'exif_DateTime' => 'Datum',
+	);
+*/
 
 
 echo $phob->render();
