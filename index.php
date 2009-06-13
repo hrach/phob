@@ -16,7 +16,7 @@ ob_start();
 require_once dirname(__FILE__) . '/phob.class.php';
 
 
-# pokud chcete provozovat pho na hostingu ic.cz, updavte soubor. htaccess nasledovne:
+# pokud chcete provozovat phob na hostingu ic.cz, updavte soubor. htaccess nasledovne:
 # pridejte pred index.php lomitko a cestu z webrootu serveru
 /*
 RewriteEngine On
@@ -31,6 +31,13 @@ $phob = new Phob();
 $phob->skins = 'skins';
 $phob->photos = 'photos';
 $phob->thumbs = 'thumbs';
+
+# zapne automaticke generovani comments.txt s nazvy fotografii ve slozce
+$phob->renderCommentsFile = true;
+# zapne automaticke pregenerovani comments.txt - doplni chybejici nazvvy fotografii
+# doporucujeme defaultne vypnout
+$phob->updateCommentsFile = false;
+
 
 $phob->config = array(
 	'siteName' => 'PhotoBrowser',

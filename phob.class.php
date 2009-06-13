@@ -73,6 +73,12 @@ class Phob
 	/** @var string */
 	public $thumbs;
 
+	/** @var bool */
+	public $renderCommentsFile = false;
+
+	/** @var bool */
+	public $updateCommentsFile = false;
+
 	/** @var array */
 	public $config = array(
 		'siteName' => 'PhotoBrowser',
@@ -209,6 +215,30 @@ class Phob
 		ksort($dirs);
 		ksort($photos);
 		$this->items = array_merge($dirs, $photos);
+ 
+ 		if ($this->renderCommentsFile) {
+ 			$file = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router['path_full']}/comments.txt";
+ 			if (file_exists($file)) {
+ 				if ($this->updateCommentsFile) {
+ 					$content = array();
+ 					$data = $this->readData($file);
+ 					foreach ($photos as $photo) {
+ 						if (isset($data[$photo['name']]))
+ 							$content[] = $photo['name'] . ': ' . $data[$photo['name']];
+ 						else
+ 							$content[] = $photo['name'] . ': ';
+					}
+
+					file_put_contents($file, implode("\n", $content));
+				}
+			} else {
+				$content = array();
+				foreach ($photos as $photo)
+					$content[] = $photo['name'] . ':';
+
+				file_put_contents($file, implode("\n", $content));
+			}
+		}
 	}
 
 
@@ -428,11 +458,9 @@ class Phob
 	{
 		$array = array();
 		$data = file($file);
-
 		foreach ($data as $line) {
-			if (preg_match('#^(.+)(?::\s|\t)(.+)$#', $line, $match)) {
+			if (preg_match('#^(.+)(?::\s|\t)(.+)$#', $line, $match))
 				$array[$match[1]] = $match[2];
-			}
 		}
 
 		return $array;
