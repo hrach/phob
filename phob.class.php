@@ -16,39 +16,38 @@ class Phob
 
 
 	/**
-	* put your comment there...
-	* 
-	* @param mixed $value
-	* @return m
+	* Returns exp from exif string
+	* @param   string $value
+	* @return  float
 	*/
 	public static function getExifExp($value)
-	{ 
-		$pos = strpos($value, '/'); 
+	{
+		$pos = strpos($value, '/');
 		if ($pos === false)
 			return (float) $value;
 
-		$a = (float) substr($value, 0, $pos); 
-		$b = (float) substr($value, $pos + 1); 
-		return ($a == 0) ? ($a) : ($b / $a); 
-	} 
+		$a = (float) substr($value, 0, $pos);
+		$b = (float) substr($value, $pos + 1);
+		return ($a == 0) ? ($a) : ($b / $a);
+	}
 
 
 	/**
 	 * Returns float from exif string
 	 * @param   string   value
-	 * @return  float 
+	 * @return  float
 	 */
 	public static function getExifFloat($value)
 	{
-		$pos = strpos($value, '/'); 
+		$pos = strpos($value, '/');
 		if ($pos === false)
-			return (float) $value; 
+			return (float) $value;
 
-		$a = (float) substr($value, 0, $pos); 
-		$b = (float) substr($value, $pos + 1); 
-		return ($b == 0) ? ($a) : ($a / $b); 
+		$a = (float) substr($value, 0, $pos);
+		$b = (float) substr($value, $pos + 1);
+		return ($b == 0) ? ($a) : ($a / $b);
 	}
- 
+
 
 	/** @var array */
 	public $lang = array(
@@ -215,18 +214,18 @@ class Phob
 		ksort($dirs);
 		ksort($photos);
 		$this->items = array_merge($dirs, $photos);
- 
- 		if ($this->renderCommentsFile) {
- 			$file = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router['path_full']}/comments.txt";
- 			if (file_exists($file)) {
- 				if ($this->updateCommentsFile) {
- 					$content = array();
- 					$data = $this->readData($file);
- 					foreach ($photos as $photo) {
- 						if (isset($data[$photo['name']]))
- 							$content[] = $photo['name'] . ': ' . $data[$photo['name']];
- 						else
- 							$content[] = $photo['name'] . ': ';
+
+		if ($this->renderCommentsFile) {
+			$file = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/{$this->router['path_full']}/comments.txt";
+			if (file_exists($file)) {
+				if ($this->updateCommentsFile) {
+					$content = array();
+					$data = $this->readData($file);
+					foreach ($photos as $photo) {
+						if (isset($data[$photo['name']]))
+							$content[] = $photo['name'] . ': ' . $data[$photo['name']];
+						else
+							$content[] = $photo['name'] . ': ';
 					}
 
 					file_put_contents($file, implode("\n", $content));
