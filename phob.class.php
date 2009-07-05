@@ -458,7 +458,7 @@ class Phob
 		$array = array();
 		$data = file($file);
 		foreach ($data as $line) {
-			if (preg_match('#^(.+)(?::\s|\t)(.+)$#', $line, $match))
+			if (preg_match('#^(.+)(?::\s|\t)(.+)$#U', $line, $match))
 				$array[$match[1]] = $match[2];
 		}
 
