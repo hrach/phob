@@ -140,8 +140,14 @@ class Phob
 	 */
 	private function route()
 	{
-		$url = (!empty($_SERVER['PATH_INFO']) && $_SERVER['PATH_INFO'] != '/') ? $_SERVER['PATH_INFO'] : 'list';
-		$url = explode('/', trim($url, '/'));
+		$key = 'PATH_INFO';
+		if (!isset($_SERVER['PATH_INFO'])) {
+			if (isset($_SERVER['ORIG_PATH_INFO']))
+				$key = 'ORIG_PATH_INFO';
+			else
+				die('Key in $SERVER[PATH_INFO] of $SERVER[ORIG_PATH_INFO] is requested');
+		}
+		$url = (!empty($_SERVER[$key]) && $_SERVER[$key] != '/') ? $_SERVER[$key] : 'list';		$url = explode('/', trim($url, '/'));
 		foreach ($url as & $u)
 			$u = urldecode($u);
 
