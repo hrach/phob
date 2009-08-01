@@ -1,4 +1,4 @@
-<?
+<?php
 	$title = '';
 	foreach ($dirTree as $node) $title .= "$node[name] » ";
 ?>
@@ -6,36 +6,36 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
-	<link rel="stylesheet" href="<?= $css ?>style.css" type="text/css" media="screen" />
-	<title><?= $siteName ?> :: <?= $title ?></title>
+	<link rel="stylesheet" href="<?php echo $css ?>style.css" type="text/css" media="screen" />
+	<title><?php echo $siteName ?> :: <?php echo $title ?></title>
 </head>
 <body>
 <div id="page">
 	<div id="header">
-		<h1><a href="<?= $this->root ?>"><?= $siteName ?></a></h1>
+		<h1><a href="<?php echo $this->root ?>"><?php echo $siteName ?></a></h1>
 
 		<div id="navigation">
-		<? foreach ($dirTree as $item) { ?>
-			<a href="<?= $item['path'] ?>"><?= $item['name'] ?></a> »
+		<?php foreach ($dirTree as $item) { ?>
+			<a href="<?php echo $item['path'] ?>"><?php echo $item['name'] ?></a> »
 		<?php } ?>
 		</div>
 	</div>
 
 	<div id="main">
-	<?
+	<?php
 		$i = 1;
 		foreach ($photos as $photo) {
 			if ($photo['type'] == 'dir') {
 	?>
-			<a href="<?= $photo['path'] ?>" class="item dir">
-				<span><?= $photo['name'] ?></span>
+			<a href="<?php echo $photo['path'] ?>" class="item dir">
+				<span><?php echo $photo['name'] ?></span>
 			</a>
-	<?		} else { ?>
-			<a href="<?= $photo['path'] ?>" class="item photo">
-				<img src="<?= $photo['thumb'] ?>" />
-				<span><?= $photo['name'] ?></span>
+	<?php		} else { ?>
+			<a href="<?php echo $photo['path'] ?>" class="item photo">
+				<img src="<?php echo $photo['thumb'] ?>" />
+				<span><?php echo $photo['name'] ?></span>
 			</a>
-	<?
+	<?php
 			}
 			
 			if ($i++ % 6 == 0) {

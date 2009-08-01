@@ -141,16 +141,10 @@ class Phob
 	private function route()
 	{
 		$key = 'PATH_INFO';
-		if (!isset($_SERVER['PATH_INFO'])) {
-			if (isset($_SERVER['ORIG_PATH_INFO']))
-				$key = 'ORIG_PATH_INFO';
-			else
-				die('Key in $SERVER[PATH_INFO] of $SERVER[ORIG_PATH_INFO] is requested');
-		}
-		$url = (!empty($_SERVER[$key]) && $_SERVER[$key] != '/') ? $_SERVER[$key] : 'list';		$url = explode('/', trim($url, '/'));
-		foreach ($url as & $u)
-			$u = urldecode($u);
-
+		if (!isset($_SERVER['PATH_INFO']) && isset($_SERVER['ORIG_PATH_INFO']))
+			$key = 'ORIG_PATH_INFO';
+		$url = (!empty($_SERVER[$key]) && $_SERVER[$key] != '/') ? $_SERVER[$key] : 'list';
+		$url = explode('/', urldecode(trim($url, '/')));
 		if (in_array($url[0], array('view', 'preview', 'list')))
 			$this->router['action'] = array_shift($url);
 		else
