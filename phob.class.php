@@ -16,10 +16,10 @@ class Phob
 
 
 	/**
-	* Returns exp from exif string
-	* @param   string $value
-	* @return  float
-	*/
+	 * Returns exp from exif string
+	 * @param   string $value
+	 * @return  float
+	 */
 	public static function getExifExp($value)
 	{
 		$pos = strpos($value, '/');
@@ -213,6 +213,12 @@ class Phob
 
 		ksort($dirs);
 		ksort($photos);
+
+		if (isset($this->config['reverseOrder']) && $this->config['reverseOrder'] === true) {
+			$dirs = array_reverse($dirs);
+			$photos = array_reverse($photos);
+		}
+
 		$this->items = array_merge($dirs, $photos);
 
 		if ($this->renderCommentsFile) {
@@ -436,7 +442,7 @@ class Phob
 			$nahled = imagecreatetruecolor($new_x, $new_y);
 			imagecopyresized($nahled, $old, 0, 0, 0, 0, $new_x, $new_y, $old_x, $old_y);
 			imagejpeg($nahled, $thumb);
-			
+
 			imagedestroy($nahled);
 		} else {
 			die('There is no required library for thumbnail generation. (GD, Imagick, Exif)');

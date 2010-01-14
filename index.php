@@ -43,7 +43,8 @@ $phob->config = array(
 	'siteName' => 'PhotoBrowser',
 	'skinName' => 'default',
 	'showDirup' => true,
-	'showExif' => true
+	'showExif' => true,
+	'reverseOrder' => false,
 );
 
 /* moznost prekladu
