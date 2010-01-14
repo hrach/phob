@@ -2,17 +2,17 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
-	<link rel="stylesheet" href="<?= $css ?>style.css" type="text/css" media="screen" />
-	<title><?= $siteName ?> :: <?= $dirTree[count($dirTree) - 1]['name'] ?></title>
+	<link rel="stylesheet" href="<?php echo $css ?>style.css" type="text/css" media="screen" />
+	<title><?php echo $siteName ?> :: <?php echo $dirTree[count($dirTree) - 1]['name'] ?></title>
 </head>
 <body>
 <div id="page">
 	<div id="header">
-		<h1><a href="<?= $this->root ?>"><?= $siteName ?></a></h1>
+		<h1><a href="<?php echo $this->root ?>"><?php echo $siteName ?></a></h1>
 
 		<div id="navigation">
-		<? foreach ($dirTree as $item) { ?>
-			<a href="<?= $item['path'] ?>"><?= $item['name'] ?></a> »
+		<?php foreach ($dirTree as $item) { ?>
+			<a href="<?php echo $item['path'] ?>"><?php echo $item['name'] ?></a> »
 		<?php } ?>
 		</div>
 	</div>
@@ -21,26 +21,26 @@
 		<table>
 		<tr>
 			<td class="thumb left">
-			<? if ($prev !== false) { ?>
-			<a href="<?= $prev['path'] ?>"><span>Předchozí</span>
-				<img src="<?= $prev['thumb'] ?>"/>
+			<?php if ($prev !== false) { ?>
+			<a href="<?php echo $prev['path'] ?>"><span>Předchozí</span>
+				<img src="<?php echo $prev['thumb'] ?>"/>
 			</a>
-			<? } ?>
+			<?php } ?>
 			</td>
 
 			<td class="photo">
-				<?= !empty($label) ? "<div class='label'>$label</div>" : ''; ?>
-				<a href="<?= $photoUrl ?>">
-					<img src="<?= $photoUrl ?>"/>
+				<?php echo !empty($label) ? "<div class='label'>$label</div>" : ''; ?>
+				<a href="<?php echo $photoUrl ?>">
+					<img src="<?php echo $photoUrl ?>"/>
 				</a>
 			</td>
 
 			<td class="thumb right">
-			<? if ($next !== false) { ?>
-			<a href="<?= $next['path'] ?>"><span>Následující</span>
-				<img src="<?= $next['thumb'] ?>"/>
+			<?php if ($next !== false) { ?>
+			<a href="<?php echo $next['path'] ?>"><span>Následující</span>
+				<img src="<?php echo $next['thumb'] ?>"/>
 			</a>
-			<? } ?>
+			<?php } ?>
 			</td>
 		</tr>
 		<?php if (!empty($exif)) { ?>
@@ -49,8 +49,8 @@
 			<table class="exif">
 			<?php foreach ($exif as $key => $val) { ?>
 				<tr>
-					<th><?= $key ?></th>
-					<td><?= $val ?></td>
+					<th><?php echo $key ?></th>
+					<td><?php echo $val ?></td>
 				</tr>
 			<?php } ?>
 			</table>
