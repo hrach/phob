@@ -174,8 +174,8 @@ class Phob
 		$folder = new DirectoryIterator($scan);
 
 		$alias = array();
-		if ($this->router['action'] == 'list' && is_file($scan . 'alias.txt'))
-			$alias = $this->readData($scan . 'alias.txt');
+		if ($this->router['action'] == 'list' && is_file($scan . '/alias.txt'))
+			$alias = $this->readData($scan . '/alias.txt');
 
 		foreach ($folder as $file) {
 			$name = $file->getFileName();
@@ -379,9 +379,14 @@ class Phob
 
 		$path = '';
 		foreach ($this->router['path'] as $dir) {
+			$alias = array();
+			$alias_file = dirname($_SERVER['SCRIPT_FILENAME']) . "/{$this->photos}/$path/alias.txt";
+			if (is_file($alias_file))
+				$alias = $this->readData($alias_file);
+
 			$path .= "$dir/";
 			$dirTree[] = array(
-				'name' => $dir,
+				'name' => !empty($alias[$dir]) ? $alias[$dir] : $dir,
 				'path' => "{$this->root}list/$path"
 			);
 		}
@@ -461,9 +466,16 @@ class Phob
 	 */
 	public static function readData($file)
 	{
+		function removeBOM($str)
+		{
+			if (substr($str, 0, 3) == pack("CCC", 0xef, 0xbb, 0xbf))
+				return substr($str, 3);
+        	return $str;
+		}
+
 		$array = array();
-		$data = file($file);
-		foreach ($data as $line) {
+		$data = removeBOM(file_get_contents($file));
+		foreach (explode("\n", $data) as $line) {
 			if (preg_match('#^(.+)(?::\s|\t)(.+)$#U', $line, $match))
 				$array[$match[1]] = $match[2];
 		}
