@@ -49,6 +49,19 @@ class Phob
 	}
 
 
+	/**
+	 * Removes utf BOM
+	 * @param string $str
+	 * @return string
+	 */
+	public static function removeBOM($str)
+	{
+		if (substr($str, 0, 3) == pack("CCC", 0xef, 0xbb, 0xbf))
+			return substr($str, 3);
+        return $str;
+	}
+
+
 	/** @var array */
 	public $lang = array(
 		'dirup' => 'Nahoru [..]',
@@ -466,15 +479,8 @@ class Phob
 	 */
 	public static function readData($file)
 	{
-		function removeBOM($str)
-		{
-			if (substr($str, 0, 3) == pack("CCC", 0xef, 0xbb, 0xbf))
-				return substr($str, 3);
-        	return $str;
-		}
-
 		$array = array();
-		$data = removeBOM(file_get_contents($file));
+		$data = self::removeBOM(file_get_contents($file));
 		foreach (explode("\n", $data) as $line) {
 			if (preg_match('#^(.+)(?::\s|\t)(.+)$#U', $line, $match))
 				$array[$match[1]] = $match[2];
